@@ -18,6 +18,9 @@ Garmin Connect のアクティビティ記録と手動登録のワークアウ�
 | [docs/09-setup-supabase.md](docs/09-setup-supabase.md) | Supabase セットアップ手順 |
 | [docs/adr/](docs/adr/) | 却下済み選択肢を含む意思決定記録 |
 
+**DB は既存の Supabase プロジェクトに `coach` スキーマで相乗りしている。**
+理由と注意点は [ADR-0006](docs/adr/0006-share-existing-supabase-project.md)。
+
 実装に着手する前に必ず [docs/03-constraints.md](docs/03-constraints.md) を読むこと。
 そこに書かれた選択肢はすべて調査済みで却下されている。
 

@@ -4,6 +4,9 @@ PWA。SvelteKit（adapter-static）で静的ビルドし、Cloudflare Pages に�
 
 `supabase-js` で Supabase を直接読む。**独自バックエンドは作らない。**
 
+既存プロジェクトに相乗りしているため、クライアントは `coach` スキーマを明示する
+（[supabase.ts](src/lib/supabase.ts)）。省くと相手の `public` を見に行って 404 になる。
+
 ## 開発
 
 ```bash

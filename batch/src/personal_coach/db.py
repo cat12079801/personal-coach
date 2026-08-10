@@ -9,15 +9,17 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any
 
-from supabase import Client, create_client
+from supabase import Client, ClientOptions, create_client
 
-from .config import SupabaseConfig
+from .config import SCHEMA, SupabaseConfig
 
 
 @lru_cache(maxsize=1)
 def client() -> Client:
     cfg = SupabaseConfig.from_env()
-    return create_client(cfg.url, cfg.secret_key)
+    # 既存プロジェクトに相乗りしているので、専用スキーマを明示する。
+    # これを忘れると相手の public スキーマを見に行って 404 になる
+    return create_client(cfg.url, cfg.secret_key, options=ClientOptions(schema=SCHEMA))
 
 
 class GarminTokenStore:

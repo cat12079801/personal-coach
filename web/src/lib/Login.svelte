@@ -36,7 +36,12 @@
 			{busy ? '…' : 'ログイン'}
 		</button>
 	</form>
+	<!--
+		既存プロジェクトに相乗りしているため、Auth は count-upper と共用になる。
+		「サインアップ無効化」は防御として使えず、coach.is_owner() だけが守っている。
+		docs/adr/0006-share-existing-supabase-project.md
+	-->
 	<p class="muted">
-		サインアップは無効化してある。アカウントは Supabase ダッシュボードから作成する。
+		アカウントは Supabase ダッシュボードで作成し、<code>coach.app_owner</code> に登録する。
 	</p>
 </div>

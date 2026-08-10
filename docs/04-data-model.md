@@ -2,6 +2,9 @@
 
 初期案。実 DDL は [supabase/migrations/0001_init.sql](../supabase/migrations/0001_init.sql)。
 
+既存プロジェクトに相乗りしているため、**全テーブルは `coach` スキーマに置く**
+（[ADR-0006](adr/0006-share-existing-supabase-project.md)）。以下では `coach.` を省略する。
+
 ```sql
 -- Garmin 由来。全種目共通のサマリ
 activities (
@@ -83,7 +86,15 @@ where b.id is null and s.id is null and k.id is null;
 - `anon` にはポリシーを一つも作らない → 未ログインでは何も読めない
 - ポリシーの条件は `public.is_owner()`。`app_owner` テーブルの 1 行に登録した `user_id` と
   `auth.uid()` が一致する場合のみ true を返す
-- **`garmin_tokens` と `app_owner` はクライアントから一切触らせない**（ポリシーを一つも作らない）
+- **`garmin_tokens` と `app_owner` はクライアントから一切触らせない**
+  （ポリシーも GRANT も与えない）
+
+### RLS だけでは足りない — GRANT が要る
+
+Supabase の新しい既定（`auto_expose_new_tables` 無効）では、マイグレーションで作成した
+テーブルは明示的な GRANT がないと PostgREST 経由で「permission denied for table」になる。
+
+`anon` にはテーブル権限を与えない。未認証アクセスをテーブルレベルでも遮断する多層防御。
 
 ### なぜ `using (true)` ではだめか
 

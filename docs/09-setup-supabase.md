@@ -2,33 +2,29 @@
 
 マイルストーン 1 の前提作業。**上から順に実施する。**
 
+無料プランのプロジェクト数上限のため、**新規プロジェクトは作らず、
+[count-upper](https://github.com/cat12079801/count-upper) が使っている既存プロジェクトに
+`coach` スキーマで相乗りする**（[ADR-0006](adr/0006-share-existing-supabase-project.md)）。
+
 ダッシュボードのラベルは変わることがある。見つからなければ近い名前の項目を探すこと。
 
 ---
 
-## 1. プロジェクトを作成する
+## 1. 対象プロジェクトを確認する
 
-<https://supabase.com/dashboard> → New project
+<https://supabase.com/dashboard> で count-upper が使っているプロジェクトを開く。
 
-| 項目 | 値 |
-|---|---|
-| Name | `personal-coach` |
-| Region | Northeast Asia (Tokyo) |
-| Database Password | 自動生成してパスワードマネージャに保存する |
-
-**DB パスワードは後から表示できない。** ここで必ず保存する。CLI からマイグレーションを
-適用するときに使う。
-
-作成後、`Settings > General` の Project ID（`abcdefghijklm` のような文字列）を控える。
+`Settings > General` の Project ID（`abcdefghijklm` のような文字列）を控える。
 以降 `<project-ref>` と表記する。
+
+count-upper の `public.counters` / `public.count_logs` はそのまま残す。触らない。
 
 ## 2. マイグレーションを適用する
 
 `supabase/migrations/` の 3 本を **0001 → 0002 → 0003 の順に**適用する。
+すべて `coach` スキーマに作られるので、count-upper 側とは混ざらない。
 
 ### 方法 A: CLI（推奨）
-
-リポジトリのマイグレーションをそのまま流せる。以降の追加も `db push` だけで済む。
 
 ```bash
 brew install supabase/tap/supabase
@@ -46,66 +42,72 @@ supabase init
 supabase link --project-ref <project-ref>
 ```
 
-`link` で 1 の DB パスワードを聞かれる。
+`link` で DB パスワードを聞かれる。count-upper のセットアップ時に保存したもの。
 
 ```bash
 supabase db push
 ```
 
-`supabase init` が `supabase/config.toml` を作る。これはコミットしてよい。
+> **注意:** 相乗り先には count-upper のマイグレーション履歴がある。
+> `db push` は未適用のものだけを流すが、実行前に必ず差分の確認プロンプトを読むこと。
+> count-upper 側のマイグレーションがこのリポジトリに無いため、
+> 想定外の操作が出たら中断して方法 B に切り替える。
 
-### 方法 B: SQL Editor
+### 方法 B: SQL Editor（相乗りではこちらが安全）
 
-CLI を入れたくない場合。ダッシュボードの `SQL Editor` に、以下を**この順で**貼って実行する。
+ダッシュボードの `SQL Editor` に、以下を**この順で**貼って実行する。
 
 1. `supabase/migrations/0001_init.sql`
 2. `supabase/migrations/0002_owner_only_rls.sql`
 3. `supabase/migrations/0003_regenerate_requests.sql`
 
-### 確認
+履歴テーブルを触らないので、count-upper 側に影響しない。
 
-`SQL Editor` で以下を実行する。
+### 確認
 
 ```sql
 select tablename, policyname, coalesce(qual, with_check) as cond
-from pg_policies where schemaname = 'public'
+from pg_policies where schemaname = 'coach'
 order by tablename, policyname;
 ```
 
-- ポリシーが **11 本**あり、`cond` がすべて `is_owner()` になっている
+- ポリシーが **11 本**あり、`cond` がすべて `coach.is_owner()` になっている
 - `garmin_tokens` と `app_owner` は 1 本も出てこない（クライアントから触れない）
 
-## 3. サインアップを無効化する
+## 3. `coach` スキーマを Data API に公開する
 
-**これが主たる防御である。** これをやらないと、誰でもアカウントを作って全データにアクセスできる。
+**これを忘れると PostgREST がスキーマを認識せず、アプリから一切読めない。**
 
-`Authentication` → `Sign In / Providers`（または `Settings`）→ Email プロバイダの
-**Allow new users to sign up** を **オフ**にする。
+`Settings` → `API` → **Exposed schemas** に `coach` を追加する（`public` はそのまま残す）。
 
-## 4. 自分のアカウントを作る
+## 4. 自分のアカウントを確認する
+
+count-upper で既にアカウントがあるならそれを使う。無ければ作る。
 
 `Authentication` → `Users` → `Add user` → `Create new user`
+（**Auto Confirm User** を有効にする）
 
-- メールアドレスとパスワードを入力する
-- **Auto Confirm User** を有効にする（確認メールを踏まずに使えるようにする）
+> **相乗りでは「サインアップ無効化」を主たる防御にできない。**
+> count-upper 側でサインアップが開いていれば、そのアカウントで `authenticated` の
+> JWT を取得できてしまうため。防御は次の 5 の `app_owner` だけである。
 
 ## 5. 所有者として登録する
 
-`SQL Editor` で実行する。メールアドレスは 4 で作ったもの。
+`SQL Editor` で実行する。
 
 ```sql
-insert into app_owner (user_id)
+insert into coach.app_owner (user_id)
 select id from auth.users where email = 'あなたのメールアドレス';
 ```
 
 確認する。
 
 ```sql
-select o.user_id, u.email from app_owner o join auth.users u on u.id = o.user_id;
+select o.user_id, u.email from coach.app_owner o join auth.users u on u.id = o.user_id;
 ```
 
-**1 行返ってこなければ失敗している。** `app_owner` が空の間は `is_owner()` が常に false を返し、
-誰も読み書きできない（fail-closed）。
+**1 行返ってこなければ失敗している。** `app_owner` が空の間は `coach.is_owner()` が常に false を
+返し、誰も読み書きできない（fail-closed）。
 
 ## 6. API キーを取得する
 
@@ -120,6 +122,8 @@ select o.user_id, u.email from app_owner o join auth.users u on u.id = o.user_id
 
 **secret キーは RLS をバイパスする。** フロントや public なファイルに絶対に置かない。
 
+count-upper と同じプロジェクトなのでキーも共通になる。片方が漏れたら両方に影響する。
+
 ## 7. 疎通を確認する
 
 ```bash
@@ -133,16 +137,14 @@ cp .env.example .env.local
 npm run dev
 ```
 
-<http://localhost:5173> を開き、4 で作ったアカウントでログインする。
+<http://localhost:5173> を開き、4 のアカウントでログインする。
 
-- ログインできる → 3〜5 が正しい
-- ログインできるが各画面が空でエラーも出ない → 正常（データがまだ無い）
-- ログインできるがエラーが出る → 5 の `app_owner` 登録を確認する
-
-### RLS が効いていることの確認
-
-`SQL Editor` ではなく、ブラウザの devtools コンソールでログアウト状態で叩くのが確実。
-未ログインで `activities` を読もうとして 0 件かエラーになれば期待どおり。
+| 症状 | 原因 |
+|---|---|
+| ログインでき、各画面が空でエラーも出ない | 正常（データがまだ無い） |
+| `permission denied for table ...` | GRANT が流れていない。0001 の末尾を再実行する |
+| `The schema must be one of the following: public` | 3 の Exposed schemas に `coach` が入っていない |
+| 空だが 0 件しか返らない | 5 の `app_owner` 登録を確認する |
 
 ---
 

@@ -18,6 +18,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(_REPO_ROOT / ".env", override=False)
 
 
+# 無料プランのプロジェクト数上限のため既存プロジェクトに相乗りしている。
+# 相手の public スキーマと混ざらないよう、専用スキーマを使う（docs/09-setup-supabase.md）
+SCHEMA = "coach"
+
+
 class ConfigError(RuntimeError):
     pass
 

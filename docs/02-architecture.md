@@ -30,6 +30,8 @@
                                  ▼
                       ┌──────────────────────────────┐
                       │  Supabase (Postgres + Auth)  │
+                      │  ※ 既存プロジェクトに coach   │
+                      │    スキーマで相乗り            │
                       │  activities / running_details│
                       │  *_logs / daily_menus        │
                       │  push_subscriptions          │

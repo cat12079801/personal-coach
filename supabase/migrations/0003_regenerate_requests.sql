@@ -7,7 +7,7 @@
 -- 独自バックエンドは持たないので、PWA は「依頼を 1 行入れる」ところまでしかやらない。
 -- これを誰が拾うかは未決定。docs/08-open-decisions.md を参照。
 
-create table regenerate_requests (
+create table coach.regenerate_requests (
   id           uuid primary key default gen_random_uuid(),
   target_date  date        not null,
   requested_at timestamptz not null default now(),
@@ -17,12 +17,15 @@ create table regenerate_requests (
 
 -- 未処理のリクエストだけを引くための部分インデックス
 create index regenerate_requests_pending_idx
-  on regenerate_requests (requested_at) where processed_at is null;
+  on coach.regenerate_requests (requested_at) where processed_at is null;
 
-alter table regenerate_requests enable row level security;
+alter table coach.regenerate_requests enable row level security;
 
 -- 依頼の作成と自分の依頼の確認のみ。更新はバッチ（service_role）が行う
 create policy regenerate_requests_insert
-  on regenerate_requests for insert to authenticated with check (public.is_owner());
+  on coach.regenerate_requests for insert to authenticated with check (coach.is_owner());
 create policy regenerate_requests_select
-  on regenerate_requests for select to authenticated using (public.is_owner());
+  on coach.regenerate_requests for select to authenticated using (coach.is_owner());
+
+grant select, insert on coach.regenerate_requests to authenticated;
+grant all on coach.regenerate_requests to service_role;
