@@ -83,6 +83,32 @@ order by tablename, policyname;
 
 > ダッシュボードの改称が入っている。以前は `Settings > API` だった。
 
+同じ画面の **Automatically expose new tables** は **OFF** にする。
+ON のままだと、今後 `coach` にテーブルを足したときに Data API ロールへ自動で GRANT が付き、
+`garmin_tokens` / `app_owner` を「どのロールにも見せない」設計が崩れる。
+Supabase 自身も無効化を推奨している。
+
+権限が意図どおりか確認する。
+
+```sql
+select table_name, grantee, string_agg(privilege_type, ', ' order by privilege_type) as privs
+from information_schema.role_table_grants
+where table_schema = 'coach' and grantee in ('anon', 'authenticated')
+group by table_name, grantee order by table_name, grantee;
+```
+
+- `anon` の行が 1 つも無い
+- `garmin_tokens` と `app_owner` の行が無い
+- 閲覧系は `SELECT`、手動ログと `push_subscriptions` は CRUD、
+  `regenerate_requests` は `INSERT, SELECT`
+
+余計な権限が付いていたら剥がす。
+
+```sql
+revoke all on all tables in schema coach from anon;
+revoke all on coach.garmin_tokens, coach.app_owner from anon, authenticated;
+```
+
 ## 4. 自分のアカウントを確認する
 
 count-upper で既にアカウントがあるならそれを使う。無ければ作る。
