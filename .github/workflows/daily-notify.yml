@@ -1,0 +1,52 @@
+name: daily-notify
+
+# 08:00 JST — 03:00 に生成済みのメニューを iOS へプッシュ通知する。
+# push はトリガーと短い要約のみを運ぶ。本体は DB にある（docs/adr/0004-push-payload-minimal.md）。
+on:
+  schedule:
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-notify
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: batch
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: Web Push 送信
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          # mailto:... または https://... でないと Apple のプッシュサービスは 403 を返す
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: uv run pc-notify
+
+      - name: 失敗を Discord に通知
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then exit 0; fi
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          jq -n --arg u "$url" '{content: ("daily-notify が失敗した: " + $u)}' \
+            | curl -sS -X POST -H 'Content-Type: application/json' -d @- \
+                "$DISCORD_WEBHOOK_URL" > /dev/null

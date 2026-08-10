@@ -1,0 +1,29 @@
+# 秘密情報
+.env
+.env.*
+!.env.example
+*.pem
+**/garmin_tokens.json
+.garminconnect/
+
+# PoC の出力（個人データ。絶対にコミットしない）
+batch/.poc-out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+uv.lock.bak
+.ruff_cache/
+*.egg-info/
+
+# Node / フロント
+node_modules/
+dist/
+.svelte-kit/
+.wrangler/
+
+# OS / エディタ
+.DS_Store
+.idea/
+.vscode/

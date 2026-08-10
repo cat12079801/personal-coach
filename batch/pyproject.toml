@@ -1,0 +1,33 @@
+[project]
+name = "personal-coach-batch"
+version = "0.1.0"
+description = "Garmin 取り込み・メニュー生成・Web Push 送信のバッチ"
+requires-python = ">=3.12"
+dependencies = [
+    "garminconnect>=0.3.9",
+    "supabase>=2.0",
+    "icalendar>=6.0",
+    "requests>=2.32",
+    "pywebpush>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6"]
+
+[project.scripts]
+pc-ingest = "personal_coach.cli:ingest"
+pc-notify = "personal_coach.cli:notify"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/personal_coach"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

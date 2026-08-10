@@ -1,0 +1,92 @@
+name: daily-ingest
+
+# 03:00 JST — 前日までのアクティビティを取り込み、当日のメニューを生成して DB に保存する。
+# GitHub Actions の cron は最大数十分ずれるが、08:00 の通知まで 5 時間あるので実害はない。
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: 'バックフィルする日数（空なら差分同期のみ）'
+        required: false
+        default: ''
+
+# public リポジトリなので権限は最小にする
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: batch
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: 取り込み + メニュー生成
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          GOOGLE_CALENDAR_ICS_URL: ${{ secrets.GOOGLE_CALENDAR_ICS_URL }}
+          # workflow_dispatch の入力はシェルに直接展開せず env 経由で渡し、Python 側で検証する
+          BACKFILL_DAYS: ${{ inputs.backfill_days }}
+        run: uv run pc-ingest
+
+      - name: 失敗を Discord に通知
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then exit 0; fi
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          jq -n --arg u "$url" '{content: ("daily-ingest が失敗した: " + $u)}' \
+            | curl -sS -X POST -H 'Content-Type: application/json' -d @- \
+                "$DISCORD_WEBHOOK_URL" > /dev/null
+
+  # public リポジトリでは 60 日間リポジトリ活動がないとスケジュールが自動無効化される。
+  # 41 日経過していたら日付マーカーを更新してコミットする。
+  # actions: write で API から再有効化する方式は 60 日タイマーがリセットされる確証がないため採用しない。
+  keepalive:
+    needs: ingest
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 41 日以上経過していたらマーカーを更新する
+        run: |
+          set -euo pipefail
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          days=$(( (now - last) / 86400 ))
+          echo "最終コミットから ${days} 日経過"
+          if [ "$days" -lt 41 ]; then
+            echo "keepalive 不要"
+            exit 0
+          fi
+          date -u +%Y-%m-%d > .github/keepalive
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .github/keepalive
+          git commit -m 'chore: keepalive'
+          git push
