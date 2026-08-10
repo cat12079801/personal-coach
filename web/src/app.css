@@ -1,0 +1,181 @@
+:root {
+	--bg: #f7f8f9;
+	--surface: #ffffff;
+	--border: #e2e5e9;
+	--text: #16191d;
+	--muted: #6b7280;
+	--accent: #2f6df6;
+	--danger: #d64545;
+	color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #111417;
+		--surface: #1a1e23;
+		--border: #2b3138;
+		--text: #e8eaed;
+		--muted: #9aa3ad;
+		--accent: #6c9bff;
+		--danger: #ff7a7a;
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family:
+		-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+	font-size: 16px;
+	line-height: 1.6;
+	-webkit-text-size-adjust: 100%;
+}
+
+a {
+	color: var(--accent);
+	text-decoration: none;
+}
+
+h1 {
+	font-size: 1.25rem;
+	margin: 0 0 1rem;
+}
+
+h2 {
+	font-size: 1rem;
+	margin: 1.5rem 0 0.5rem;
+	color: var(--muted);
+	font-weight: 600;
+}
+
+.page {
+	/* 下部ナビとセーフエリアぶん空ける */
+	padding: max(1rem, env(safe-area-inset-top)) 1rem calc(5rem + env(safe-area-inset-bottom));
+	max-width: 40rem;
+	margin: 0 auto;
+}
+
+.card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 0.75rem;
+	padding: 1rem;
+	margin-bottom: 0.75rem;
+}
+
+.card--tappable:active {
+	opacity: 0.7;
+}
+
+.row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 0.5rem;
+}
+
+.muted {
+	color: var(--muted);
+	font-size: 0.875rem;
+}
+
+.empty {
+	color: var(--muted);
+	text-align: center;
+	padding: 2rem 1rem;
+}
+
+button,
+.button {
+	font: inherit;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--text);
+	border-radius: 0.5rem;
+	padding: 0.6rem 1rem;
+	cursor: pointer;
+	/* iOS で許可要求はクリックハンドラから直接呼ぶ必要がある。ボタンは実要素にする */
+	touch-action: manipulation;
+}
+
+button:disabled {
+	opacity: 0.5;
+}
+
+.button--primary {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+
+input,
+select,
+textarea {
+	font: inherit;
+	width: 100%;
+	padding: 0.6rem;
+	border: 1px solid var(--border);
+	border-radius: 0.5rem;
+	background: var(--surface);
+	color: var(--text);
+}
+
+label {
+	display: block;
+	margin-bottom: 0.75rem;
+}
+
+label > span {
+	display: block;
+	font-size: 0.875rem;
+	color: var(--muted);
+	margin-bottom: 0.25rem;
+}
+
+.nav {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	background: var(--surface);
+	border-top: 1px solid var(--border);
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav a {
+	flex: 1;
+	text-align: center;
+	padding: 0.6rem 0.25rem;
+	font-size: 0.7rem;
+	color: var(--muted);
+}
+
+.nav a[aria-current='page'] {
+	color: var(--accent);
+}
+
+.badge {
+	display: inline-block;
+	min-width: 1.1rem;
+	padding: 0 0.3rem;
+	border-radius: 999px;
+	background: var(--danger);
+	color: #fff;
+	font-size: 0.65rem;
+	line-height: 1.1rem;
+	text-align: center;
+	vertical-align: text-top;
+}
+
+.error {
+	color: var(--danger);
+	font-size: 0.875rem;
+}

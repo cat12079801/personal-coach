@@ -1,67 +1,67 @@
 # web
 
-PWA。Cloudflare Pages に静的配信する。**マイルストーン 4・未着手。**
+PWA。SvelteKit（adapter-static）で静的ビルドし、Cloudflare Pages に配信する。
 
-フレームワークは任意（SvelteKit / React + Vite 等）。着手時に決める。
+`supabase-js` で Supabase を直接読む。**独自バックエンドは作らない。**
 
-## 方針
+## 開発
 
-- `supabase-js` で Supabase を直接読む。**独自バックエンドは作らない**
-- 認証は Supabase Auth。利用者は 1 人
-- 書き込みは手動ログ（ボルダリング / 筋トレ / スケート）と `push_subscriptions` のみ
-
-## 実装必須の要件
-
-[docs/03-constraints.md](../docs/03-constraints.md) の 3・4 に対応するもの。省略できない。
-
-### manifest.json
-
-```jsonc
-{
-  "display": "standalone"   // "browser" だと iOS で通知不可
-}
+```bash
+cd web
+npm install
+cp .env.example .env.local   # 値を埋める
+npm run dev
 ```
 
-### 通知の許可要求
-
-```js
-// クリックハンドラから直接呼ぶ。setTimeout 経由は iOS に無視される
-button.addEventListener('click', async () => {
-  const permission = await Notification.requestPermission()
-  if (permission !== 'granted') return
-  const sub = await registration.pushManager.subscribe({
-    userVisibleOnly: true,          // iOS では必須
-    applicationServerKey: VAPID_PUBLIC_KEY,
-  })
-  await supabase.from('push_subscriptions').upsert(toRow(sub))
-})
-```
-
-**ホーム画面追加が必須。** Safari のタブでは許可要求すらできない。
-その旨を案内する UI を用意する。
-
-### Service Worker
-
-```js
-self.addEventListener('push', (event) => {
-  const data = event.data.json()
-  // showNotification を呼ばない push が数回続くと iOS は購読を解除する。
-  // silent push は不可
-  event.waitUntil(self.registration.showNotification(data.title, { body: data.body }))
-})
-```
-
-### 起動時の再購読
-
-iOS は端末再起動後などに予期せず購読を解除する。**PWA 起動時に必ず再購読する。**
-
-### 画面
-
-| 画面 | 内容 |
+| コマンド | 内容 |
 |---|---|
-| 当日メニュー | `daily_menus` から読む。push は本体を運ばないのでここが正 |
-| 「メニュー再生成」ボタン | .ics のキャッシュ遅延に対する手動リカバリ。省略不可 |
-| アクティビティ一覧 | `activities` + `running_details` |
-| 未紐付けアクティビティ | `unlinked_activities` ビュー。ここから手動ログを追記する |
-| 手動ログ登録 | ボルダリング / 筋トレ / スケート。RPE も入力する |
-| 通知履歴 + 未読カウンタ | `notifications`。iOS では推奨ではなく必須 |
+| `npm run dev` | 開発サーバ |
+| `npm run build` | `build/` に静的出力 |
+| `npm run check` | 型チェック（svelte-check） |
+
+## Cloudflare Pages の設定
+
+| 項目 | 値 |
+|---|---|
+| Build command | `npm ci && npm run build` |
+| Build output directory | `web/build` |
+| Root directory | `web` |
+
+ビルド環境変数に `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` / `VITE_VAPID_PUBLIC_KEY` を設定する。
+
+`anon` キーはフロントに埋め込まれる公開値であり、秘密ではない。
+データを守っているのは Supabase 側の RLS（`is_owner()`）だけである。
+
+## 画面
+
+| ルート | 内容 |
+|---|---|
+| `/` | 当日メニュー + 生成根拠 + 「メニュー再生成」ボタン |
+| `/activities` | Garmin から取り込んだアクティビティ一覧 |
+| `/unlinked` | 未紐付けアクティビティ。ここから手動ログを追記する |
+| `/logs` | 手動登録（ボルダリング / 筋トレ / スケート）+ 最近の記録 |
+| `/notifications` | 通知履歴。未読カウンタはタブに出る |
+| `/settings` | 通知の有効化・ログアウト |
+
+未ログイン時は [Login.svelte](src/lib/Login.svelte) を出す。ログイン方式は暫定
+（[docs/08-open-decisions.md](../docs/08-open-decisions.md) の OD-2）。
+
+## iOS 対応で外せない箇所
+
+[docs/03-constraints.md](../docs/03-constraints.md) の 3・4 に対応する実装。触るときは必ず読むこと。
+
+| 箇所 | 内容 |
+|---|---|
+| [manifest.webmanifest](static/manifest.webmanifest) | `display` は `standalone`。`browser` だと通知不可 |
+| [push.ts](src/lib/push.ts) `enablePush()` | `Notification.requestPermission()` をクリックハンドラから直接呼ぶ |
+| [push.ts](src/lib/push.ts) | `userVisibleOnly: true` は必須 |
+| [push.ts](src/lib/push.ts) `syncSubscription()` | 起動時に再購読する。iOS は勝手に購読を解除する |
+| [sw.js](static/sw.js) | `push` で必ず `showNotification()` を呼ぶ。silent push は不可 |
+| [settings/+page.svelte](src/routes/settings/+page.svelte) | ホーム画面未追加なら許可要求を出さず案内する |
+| [notifications/+page.svelte](src/routes/notifications/+page.svelte) | 通知履歴。push は要約しか運ばないので必須 |
+
+## 未実装
+
+- **実機での Web Push 検証**（マイルストーン 5）。iOS の制約は実機でしか確認できない
+- 「メニュー再生成」は `regenerate_requests` に行を入れるだけ。処理する側が未実装
+  （[docs/08-open-decisions.md](../docs/08-open-decisions.md) の OD-1）

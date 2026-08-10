@@ -20,8 +20,12 @@ uv.lock.bak
 # Node / フロント
 node_modules/
 dist/
+build/
 .svelte-kit/
 .wrangler/
+
+# ツール設定
+.claude/
 
 # OS / エディタ
 .DS_Store
