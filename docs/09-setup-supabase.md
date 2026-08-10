@@ -78,7 +78,10 @@ order by tablename, policyname;
 
 **これを忘れると PostgREST がスキーマを認識せず、アプリから一切読めない。**
 
-`Settings` → `API` → **Exposed schemas** に `coach` を追加する（`public` はそのまま残す）。
+サイドバー `Settings` → **INTEGRATIONS** セクションの `Data API` → **Exposed schemas** に
+`coach` を追加する（`public` はそのまま残す）。
+
+> ダッシュボードの改称が入っている。以前は `Settings > API` だった。
 
 ## 4. 自分のアカウントを確認する
 
@@ -144,6 +147,7 @@ npm run dev
 | ログインでき、各画面が空でエラーも出ない | 正常（データがまだ無い） |
 | `permission denied for table ...` | GRANT が流れていない。0001 の末尾を再実行する |
 | `The schema must be one of the following: public` | 3 の Exposed schemas に `coach` が入っていない |
+| `permission denied for schema coach` | 同上 |
 | 空だが 0 件しか返らない | 5 の `app_owner` 登録を確認する |
 
 ---

@@ -45,7 +45,7 @@ createClient(url, key, { db: { schema: 'coach' } })
 create_client(url, key, options=ClientOptions(schema="coach"))
 ```
 
-ダッシュボードの `Settings > API` で **Exposed schemas に `coach` を追加**する必要もある。
+ダッシュボードの `Settings > Data API` で **Exposed schemas に `coach` を追加**する必要もある。
 これを忘れると PostgREST がスキーマを認識しない。
 
 ### GRANT が必須
