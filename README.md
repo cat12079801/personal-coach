@@ -37,7 +37,19 @@ docs/        設計ドキュメント
 supabase db push
 ```
 
-もしくは `supabase/migrations/0001_init.sql` を SQL Editor で実行する。
+もしくは `supabase/migrations/` の SQL を番号順に SQL Editor で実行する。
+
+続けて **アクセス制御の設定を必ず行う**（[docs/04-data-model.md](docs/04-data-model.md) の RLS 方針）。
+
+1. ダッシュボードの Authentication → Providers → Email で**サインアップを無効化する**
+2. 自分のアカウントを作成し、所有者として登録する
+
+```sql
+insert into app_owner (user_id)
+select id from auth.users where email = 'あなたのメールアドレス';
+```
+
+`app_owner` が空の間は誰も読み書きできない（fail-closed）。
 
 ### 2. Garmin トークンの初期投入
 

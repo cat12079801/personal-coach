@@ -73,10 +73,31 @@ where b.id is null and s.id is null and k.id is null;
 
 ## RLS 方針
 
-利用者は 1 人。
+利用者は 1 人。**「認証済みなら誰でも」ではなく「所有者本人だけ」に絞る。**
 
 - **バッチ**は `service_role` キーで書き込む（RLS をバイパス）
 - **フロント**は `anon` キー + Supabase Auth のログイン済みユーザとして読む
-- `authenticated` ロールに対して: 閲覧系テーブルは `select`、手動ログと `push_subscriptions` は
-  `insert` / `update` / `delete` を許可する
-- **`garmin_tokens` はクライアントから一切触らせない**（ポリシーを一つも作らない）
+- `anon` にはポリシーを一つも作らない → 未ログインでは何も読めない
+- ポリシーの条件は `public.is_owner()`。`app_owner` テーブルの 1 行に登録した `user_id` と
+  `auth.uid()` が一致する場合のみ true を返す
+- **`garmin_tokens` と `app_owner` はクライアントから一切触らせない**（ポリシーを一つも作らない）
+
+### なぜ `using (true)` ではだめか
+
+`to authenticated using (true)` だと、**そのプロジェクトでアカウントを作れた人は全員フルアクセス**
+になる。Supabase Auth はデフォルトでサインアップが開いているため、これは穴になる。
+
+対策は 2 段構え。片方だけに頼らない。
+
+1. **Supabase ダッシュボードで Email のサインアップを無効化する**（主たる防御）
+2. **ポリシーを `is_owner()` に紐づける**（多層防御。設定が戻っても守られる）
+
+### fail-closed
+
+`app_owner` が空の間は `is_owner()` が常に false を返し、誰も読み書きできない。
+マイグレーション適用直後は必ずこの状態になるので、下記の 1 行を手で入れる。
+
+```sql
+insert into app_owner (user_id)
+select id from auth.users where email = 'あなたのメールアドレス';
+```
