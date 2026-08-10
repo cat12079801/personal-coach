@@ -26,7 +26,7 @@
                       │   4. メニュー生成（ルール）    │
                       │   5. keepalive コミット        │
                       └──────────┬───────────────────┘
-                                 │ service_role
+                                 │ secret key
                                  ▼
                       ┌──────────────────────────────┐
                       │  Supabase (Postgres + Auth)  │
@@ -35,7 +35,7 @@
                       │  push_subscriptions          │
                       │  garmin_tokens               │
                       └──────────┬───────────────────┘
-                                 │ anon key + RLS
+                                 │ publishable key + RLS
    08:00 JST ────────▶ daily-notify ──▶ Web Push ──▶ iOS ホーム画面 PWA
    (cron 0 23 * * *)     （要約のみ）                    │
                                                         ▼

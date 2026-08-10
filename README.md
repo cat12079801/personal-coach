@@ -15,6 +15,7 @@ Garmin Connect のアクティビティ記録と手動登録のワークアウ�
 | [docs/06-poc-notes.md](docs/06-poc-notes.md) | PoC 結果の記録先（未確定事項の潰し込み） |
 | [docs/07-garmin-api.md](docs/07-garmin-api.md) | 検証済み `garminconnect` API 一覧 |
 | [docs/08-open-decisions.md](docs/08-open-decisions.md) | 未決定の設計判断 |
+| [docs/09-setup-supabase.md](docs/09-setup-supabase.md) | Supabase セットアップ手順 |
 | [docs/adr/](docs/adr/) | 却下済み選択肢を含む意思決定記録 |
 
 実装に着手する前に必ず [docs/03-constraints.md](docs/03-constraints.md) を読むこと。
@@ -34,23 +35,12 @@ docs/        設計ドキュメント
 
 ### 1. Supabase
 
-```bash
-supabase db push
-```
+プロジェクト作成 → マイグレーション適用 → サインアップ無効化 → 所有者登録 → API キー取得。
 
-もしくは `supabase/migrations/` の SQL を番号順に SQL Editor で実行する。
+**手順は [docs/09-setup-supabase.md](docs/09-setup-supabase.md) に全部書いてある。**
 
-続けて **アクセス制御の設定を必ず行う**（[docs/04-data-model.md](docs/04-data-model.md) の RLS 方針）。
-
-1. ダッシュボードの Authentication → Providers → Email で**サインアップを無効化する**
-2. 自分のアカウントを作成し、所有者として登録する
-
-```sql
-insert into app_owner (user_id)
-select id from auth.users where email = 'あなたのメールアドレス';
-```
-
-`app_owner` が空の間は誰も読み書きできない（fail-closed）。
+アクセス制御（サインアップ無効化と `app_owner` 登録）は省略できない。
+省くと誰でもアカウントを作って全データにアクセスできる。
 
 ### 2. Garmin トークンの初期投入
 
@@ -70,7 +60,7 @@ Supabase の `garmin_tokens` テーブルに投入される。以降はバッチ
 | Secret | 用途 |
 |---|---|
 | `SUPABASE_URL` | Supabase プロジェクト URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | バッチからの書き込み用 |
+| `SUPABASE_SECRET_KEY` | バッチからの書き込み用（`sb_secret_...`） |
 | `GARMIN_EMAIL` / `GARMIN_PASSWORD` | トークン失効時の再ログイン用 |
 | `GOOGLE_CALENDAR_ICS_URL` | カレンダーの非公開 iCal URL（実質的な認証情報） |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push |

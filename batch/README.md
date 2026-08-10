@@ -34,7 +34,7 @@ PoC の出力は `.poc-out/`（gitignore 済み）。**個人データなので�
 ```
 personal_coach/
 ├── config.py         環境変数。ここで読んだ値はログに出さない
-├── db.py             Supabase（service_role）。GarminTokenStore
+├── db.py             Supabase（secret key = service_role ロール）。GarminTokenStore
 ├── cli.py            エントリポイント
 ├── ingest.py         取り込み（マイルストーン 3・未着手）
 ├── calendar_ics.py   Google カレンダー（非公開 iCal URL）

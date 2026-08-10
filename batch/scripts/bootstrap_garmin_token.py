@@ -7,7 +7,7 @@
     cd batch
     uv run python scripts/bootstrap_garmin_token.py
 
-必要な環境変数: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / GARMIN_EMAIL / GARMIN_PASSWORD
+必要な環境変数: SUPABASE_URL / SUPABASE_SECRET_KEY / GARMIN_EMAIL / GARMIN_PASSWORD
 （メール・パスワードは未設定なら対話で聞く）
 
 トークンが完全に失効してバッチが落ちたときも、これを再実行して復旧する。

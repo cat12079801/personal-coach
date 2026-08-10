@@ -7,6 +7,15 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# ローカル実行のためにリポジトリ直下の .env を読む。
+# override=False なので、GitHub Actions で渡される環境変数を上書きすることはない。
+# Actions には .env が無いので、そこでは何も起きない。
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(_REPO_ROOT / ".env", override=False)
 
 
 class ConfigError(RuntimeError):
@@ -27,13 +36,15 @@ def _optional(name: str) -> str | None:
 @dataclass(frozen=True)
 class SupabaseConfig:
     url: str
-    service_role_key: str
+    # secret key（sb_secret_...）。Postgres の service_role ロールで動くため RLS をバイパスする。
+    # 旧 service_role JWT でも動くが、2026 年末で廃止予定なので secret key を使う
+    secret_key: str
 
     @classmethod
     def from_env(cls) -> SupabaseConfig:
         return cls(
             url=_require("SUPABASE_URL"),
-            service_role_key=_require("SUPABASE_SERVICE_ROLE_KEY"),
+            secret_key=_require("SUPABASE_SECRET_KEY"),
         )
 
 

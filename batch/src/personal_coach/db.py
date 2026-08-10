@@ -1,4 +1,8 @@
-"""Supabase クライアント。バッチは service_role キーで RLS をバイパスする。"""
+"""Supabase クライアント。
+
+バッチは secret key（`sb_secret_...`）で接続する。これは Postgres の service_role ロールに
+対応し、BYPASSRLS 属性を持つので RLS を素通りする。フロントの publishable key とは別物。
+"""
 
 from __future__ import annotations
 
@@ -13,7 +17,7 @@ from .config import SupabaseConfig
 @lru_cache(maxsize=1)
 def client() -> Client:
     cfg = SupabaseConfig.from_env()
-    return create_client(cfg.url, cfg.service_role_key)
+    return create_client(cfg.url, cfg.secret_key)
 
 
 class GarminTokenStore:

@@ -27,9 +27,10 @@ npm run dev
 | Build output directory | `web/build` |
 | Root directory | `web` |
 
-ビルド環境変数に `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` / `VITE_VAPID_PUBLIC_KEY` を設定する。
+ビルド環境変数に `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_VAPID_PUBLIC_KEY`
+を設定する。
 
-`anon` キーはフロントに埋め込まれる公開値であり、秘密ではない。
+publishable key（`sb_publishable_...`）はフロントに埋め込まれる公開値であり、秘密ではない。
 データを守っているのは Supabase 側の RLS（`is_owner()`）だけである。
 
 ## 画面

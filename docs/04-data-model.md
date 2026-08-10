@@ -75,8 +75,11 @@ where b.id is null and s.id is null and k.id is null;
 
 利用者は 1 人。**「認証済みなら誰でも」ではなく「所有者本人だけ」に絞る。**
 
-- **バッチ**は `service_role` キーで書き込む（RLS をバイパス）
-- **フロント**は `anon` キー + Supabase Auth のログイン済みユーザとして読む
+- **バッチ**は secret key（`sb_secret_...`）で書き込む。Postgres の `service_role` ロールに
+  対応し BYPASSRLS を持つため RLS を素通りする
+- **フロント**は publishable key（`sb_publishable_...`）+ Supabase Auth のログイン済みユーザ
+  として読む。Postgres の `anon` / `authenticated` ロールで動くので RLS が効く
+- 旧 `anon` / `service_role` の JWT キーでも動くが、2026 年末で廃止予定なので使わない
 - `anon` にはポリシーを一つも作らない → 未ログインでは何も読めない
 - ポリシーの条件は `public.is_owner()`。`app_owner` テーブルの 1 行に登録した `user_id` と
   `auth.uid()` が一致する場合のみ true を返す

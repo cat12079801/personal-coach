@@ -49,7 +49,7 @@
 		<h1>設定が足りない</h1>
 		<div class="card">
 			<p>
-				<code>VITE_SUPABASE_URL</code> と <code>VITE_SUPABASE_ANON_KEY</code> が設定されていない。
+				<code>VITE_SUPABASE_URL</code> と <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> が設定されていない。
 			</p>
 			<p class="muted">
 				ローカルでは <code>web/.env.local</code> に、Cloudflare Pages ではビルド環境変数に設定する。
