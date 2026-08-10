@@ -33,3 +33,17 @@
 
 - ドキュメント・commit message・PR description は**である調**で端的に書く
 - 提示するシェルコマンドは fish で動く形式にする（CI 内のスクリプトは bash でよい）
+
+### Markdown の強調記法
+
+**閉じの `**` の直前に句読点を置かない。** GitHub（CommonMark）は
+「閉じ `**` の直前が約物、かつ直後が空白でも約物でもない」場合に強調を閉じないため、
+`**である。**次に` は崩れる。`**である**。次に` と書く。
+
+確認方法:
+
+```bash
+jq -n --rawfile t README.md '{text:$t, mode:"gfm"}' | gh api -X POST /markdown --input - | grep '\*\*'
+```
+
+出力に `**` が残っていたら崩れている。

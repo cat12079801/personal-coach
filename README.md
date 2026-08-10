@@ -75,7 +75,7 @@ Supabase の `garmin_tokens` テーブルに投入される。以降はバッチ
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push |
 | `DISCORD_WEBHOOK_URL` | バッチ失敗通知 |
 
-**このリポジトリは public である。**ログに Secrets を出力しないこと。詳細は
+**このリポジトリは public である**。ログに Secrets を出力しないこと。詳細は
 [docs/03-constraints.md](docs/03-constraints.md) の「5. GitHub Actions の 60 日自動無効化」を参照。
 
 ## バッチ
