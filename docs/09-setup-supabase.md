@@ -115,8 +115,8 @@ revoke all on coach.garmin_tokens, coach.app_owner from anon, authenticated;
 （`auth.users` の行）は Google の identity に紐づくだけで**パスワードを持たない**。
 Google provider はプロジェクト側で既に有効なので、追加設定は不要。
 
-**リダイレクト先の許可だけ追加する。** これが無いと Google から戻ってきたときに
-Site URL（count-upper 側）へ飛ばされてログインが完了しない。
+**リダイレクト先の許可だけ追加する。** Supabase ダッシュボードでの作業であり、
+Cloudflare 側は触らない。
 
 `Authentication` → `URL Configuration` → **Redirect URLs** に追加する。
 
@@ -124,7 +124,13 @@ Site URL（count-upper 側）へ飛ばされてログインが完了しない。
 http://localhost:5173/**
 ```
 
-Cloudflare Pages にデプロイしたら、その URL も同じ場所に追加する。
+なぜ必要か: OAuth のリダイレクトは Supabase を経由する。最後の戻り先はアプリが
+`redirectTo` で指定するが、**Supabase は許可リストにない URL を拒否して Site URL に
+フォールバックする**（オープンリダイレクト対策）。Site URL は count-upper のものなので、
+許可リストに入れないとそちらへ飛ばされてログインが完了しない。
+
+> Cloudflare Pages へデプロイした後は、その URL も同じ欄に追加する。
+> **ローカル確認の時点では不要。**
 
 > **相乗りでは「サインアップ無効化」を主たる防御にできない。**
 > count-upper 側でサインアップが開いていれば、そのアカウントで `authenticated` の
