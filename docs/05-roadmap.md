@@ -4,7 +4,7 @@
 
 | # | マイルストーン | 状態 | 成果物 |
 |---|---|---|---|
-| 1 | Garmin 認証 + トークンの Supabase 往復 | 🚧 スケルトンあり | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
+| 1 | Garmin 認証 + トークンの Supabase 往復 | 🚧 ローカルは動作確認済 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
 | 2 | Garmin コーチのプラン取得 PoC | ⬜ 未着手 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
 | 3 | 取り込みバッチ → Supabase | ⬜ 未着手 | `garmin/sync.py`, `ingest.py` |
 | 4 | PWA | 🚧 実装済・実データ未検証 | `web/` |
@@ -43,9 +43,10 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
 
 - [x] バッチが secret key で `coach` スキーマに読み書きできる
       （`garmin_tokens` の書き込み → 読み戻し → 削除を確認済み）
-- [ ] ローカルで MFA を越えてログインでき、`garmin_tokens` に初期値が入る
-- [ ] DB のトークンだけで（パスワードなしで）ログインできる
-- [ ] リフレッシュ後のトークンが DB に書き戻される
+- [x] ローカルでログインでき、`garmin_tokens` に初期値が入る
+- [x] DB のトークンだけで（パスワードなしで）ログインできる
+- [x] リフレッシュ後のトークンが DB に書き戻される
+      （`Client.dump()` の呼び出しを修正。旧実装は `garth.dump()` を叩いて失敗していた）
 - [ ] GitHub Actions 上（非対話）で 1 回成功する
 
 ### 2. Garmin コーチのプラン取得 PoC
@@ -69,7 +70,7 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
 
 - [x] Supabase を `supabase-js` で直接読んで一覧表示できる
 - [x] 未紐付けアクティビティ一覧がある
-- [x] 手動ログ（ボルダリング / 筋トレ / スケート）を登録できる
+- [x] 手動ログ（筋トレ / スケート）を登録できる
 - [x] 「メニュー再生成」ボタンがある（依頼を積むところまで。OD-1 参照）
 - [ ] 実データで表示を確認した（Supabase の構築待ち）
 - [ ] Cloudflare Pages にデプロイできている

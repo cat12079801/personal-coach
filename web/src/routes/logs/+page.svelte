@@ -7,12 +7,6 @@
 	/** 種目ごとの詳細フィールド。jsonb にそのまま入る。 */
 	const FIELDS: Record<LogKind, { key: string; label: string; type: 'text' | 'number' | 'check' }[]> =
 		{
-			bouldering: [
-				{ key: 'grade', label: 'グレード', type: 'text' },
-				{ key: 'wall', label: '壁', type: 'text' },
-				{ key: 'attempts', label: 'トライ数', type: 'number' },
-				{ key: 'sent', label: '完登', type: 'check' }
-			],
 			strength: [
 				{ key: 'name', label: '種目', type: 'text' },
 				{ key: 'reps', label: 'レップ', type: 'number' },
@@ -26,9 +20,8 @@
 			]
 		};
 
-	let kind = $state<LogKind>('bouldering');
+	let kind = $state<LogKind>('strength');
 	let at = $state(nowForInput());
-	let gym = $state('');
 	let rpe = $state<number | null>(null);
 	let note = $state('');
 	let items = $state<Record<string, unknown>[]>([{}]);
@@ -91,7 +84,6 @@
 			rpe,
 			note: note || null
 		};
-		if (kind === 'bouldering') payload.gym = gym || null;
 
 		const { error: e } = await db().from(spec.table).insert(payload);
 		if (e) {
@@ -131,16 +123,8 @@
 			<input type="datetime-local" bind:value={at} required />
 		</label>
 
-		{#if kind === 'bouldering'}
-			<label>
-				<span>ジム</span>
-				<input type="text" bind:value={gym} />
-			</label>
-		{/if}
 
-		<span class="muted">
-			{kind === 'bouldering' ? '課題' : kind === 'strength' ? 'エクササイズ' : '要素'}
-		</span>
+		<span class="muted">{kind === 'strength' ? 'エクササイズ' : '要素'}</span>
 		{#each items as item, i (i)}
 			<div class="card" style="background: transparent;">
 				{#each FIELDS[kind] as field (field.key)}

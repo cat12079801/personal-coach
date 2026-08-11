@@ -43,11 +43,10 @@ export type NotificationRow = {
 	read_at: string | null;
 };
 
-export type LogKind = 'bouldering' | 'strength' | 'skating';
+export type LogKind = 'strength' | 'skating';
 
 /** 種目ごとにテーブル名・日時カラム・詳細カラムが違うのでまとめて持つ。 */
 export const LOG_TABLES: Record<LogKind, { table: string; at: string; detail: string; label: string }> = {
-	bouldering: { table: 'bouldering_logs', at: 'climbed_at', detail: 'sends', label: 'ボルダリング' },
 	strength: { table: 'strength_logs', at: 'performed_at', detail: 'exercises', label: '筋トレ' },
 	skating: { table: 'skating_logs', at: 'practiced_at', detail: 'elements', label: 'スケート' }
 };

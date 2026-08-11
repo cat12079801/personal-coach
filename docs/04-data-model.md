@@ -17,7 +17,6 @@ activities (
 running_details (activity_id fk, distance_m, avg_pace, elev_gain, splits jsonb)
 
 -- 手動登録。activity_id は NULL 許容（必須）
-bouldering_logs (id, activity_id fk null, climbed_at, gym, sends jsonb, note)
 strength_logs  (id, activity_id fk null, performed_at, exercises jsonb, note)
 skating_logs   (id, activity_id fk null, practiced_at, elements jsonb, note)
 
@@ -44,10 +43,9 @@ UI には「**未紐付けの Garmin アクティビティ一覧**」を出し�
 
 ```sql
 select a.* from activities a
-left join bouldering_logs b on b.activity_id = a.id
-left join strength_logs   s on s.activity_id = a.id
-left join skating_logs    k on k.activity_id = a.id
-where b.id is null and s.id is null and k.id is null;
+left join strength_logs s on s.activity_id = a.id
+left join skating_logs  k on k.activity_id = a.id
+where s.id is null and k.id is null;
 ```
 
 ## jsonb カラムの想定形状
@@ -55,9 +53,6 @@ where b.id is null and s.id is null and k.id is null;
 いずれも手動登録なので自分で決めてよい。以下は初期案であり、UI 実装時に確定させる。
 
 ```jsonc
-// bouldering_logs.sends
-[{ "grade": "3級", "wall": "スラブ", "attempts": 3, "sent": true }]
-
 // strength_logs.exercises
 [{ "name": "腕立て伏せ", "sets": [{ "reps": 20 }, { "reps": 18 }] },
  { "name": "デッドリフト", "sets": [{ "reps": 8, "weight_kg": 80 }] }]

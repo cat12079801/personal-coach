@@ -48,16 +48,33 @@ def _dict_to_dir(data: dict[str, Any], directory: Path) -> None:
         target.write_text(content if isinstance(content, str) else json.dumps(content))
 
 
-def _dump_tokens(client: Garmin, directory: Path) -> None:
+# トークンを保持しているオブジェクトの属性名。ライブラリの版によって違う。
+# 0.3.x 系は Garmin.client（garminconnect.client.Client）が dump/load を持つ。
+# 旧版は garth に委譲していたため、両方を順に試す。
+_TOKEN_HOLDERS = ("client", "garth")
+
+
+def _dump_tokens(client: Garmin, directory: Path) -> bool:
     """現在のトークン（リフレッシュ済みかもしれない）をディレクトリへ書き出す。
 
-    garth の API は変わりうるので、失敗しても致命傷にしない。
-    次回 DB のトークンが古くてもフルログインにフォールバックできる。
+    書き出せないとリフレッシュ後の値を DB に戻せず、トークンはいずれ失効する。
+    再取得は MFA 対話が必要で、しかも Garmin の IP レート制限に当たりやすい。
+    したがって失敗は必ず ERROR で残す。バッチ自体は落とさない。
     """
-    try:
-        client.garth.dump(str(directory))
-    except Exception:  # noqa: BLE001 - ライブラリ側の変更を握りつぶして継続する
-        logger.warning("トークンのダンプに失敗した。garminconnect の API 変更を確認すること")
+    for attr in _TOKEN_HOLDERS:
+        dump = getattr(getattr(client, attr, None), "dump", None)
+        if not callable(dump):
+            continue
+        try:
+            dump(str(directory))
+            return True
+        except Exception:
+            logger.exception("%s.dump() に失敗した", attr)
+    logger.error(
+        "トークンをダンプできなかった。リフレッシュ後の値が DB に戻らないため、"
+        "いずれ再ログインが必要になる。garminconnect の API 変更を確認すること"
+    )
+    return False
 
 
 @contextmanager
