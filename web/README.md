@@ -47,8 +47,11 @@ publishable key（`sb_publishable_...`）はフロントに埋め込まれる公
 | `/notifications` | 通知履歴。未読カウンタはタブに出る |
 | `/settings` | 通知の有効化・ログアウト |
 
-未ログイン時は [Login.svelte](src/lib/Login.svelte) を出す。ログイン方式は暫定
+未ログイン時は [Login.svelte](src/lib/Login.svelte) を出す。ログインは **Google OAuth のみ**
 （[docs/08-open-decisions.md](../docs/08-open-decisions.md) の OD-2）。
+
+戻り先は `Authentication > URL Configuration > Redirect URLs` で許可しておく必要がある。
+開発は `http://localhost:5173/**`、本番は Cloudflare Pages の URL。
 
 ## iOS 対応で外せない箇所
 

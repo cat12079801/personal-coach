@@ -109,12 +109,22 @@ revoke all on all tables in schema coach from anon;
 revoke all on coach.garmin_tokens, coach.app_owner from anon, authenticated;
 ```
 
-## 4. 自分のアカウントを確認する
+## 4. ログインの設定を確認する
 
-count-upper で既にアカウントがあるならそれを使う。無ければ作る。
+ログインは **Google OAuth のみ**。count-upper が Google SSO を使っており、対象アカウント
+（`auth.users` の行）は Google の identity に紐づくだけで**パスワードを持たない**。
+Google provider はプロジェクト側で既に有効なので、追加設定は不要。
 
-`Authentication` → `Users` → `Add user` → `Create new user`
-（**Auto Confirm User** を有効にする）
+**リダイレクト先の許可だけ追加する。** これが無いと Google から戻ってきたときに
+Site URL（count-upper 側）へ飛ばされてログインが完了しない。
+
+`Authentication` → `URL Configuration` → **Redirect URLs** に追加する。
+
+```
+http://localhost:5173/**
+```
+
+Cloudflare Pages にデプロイしたら、その URL も同じ場所に追加する。
 
 > **相乗りでは「サインアップ無効化」を主たる防御にできない。**
 > count-upper 側でサインアップが開いていれば、そのアカウントで `authenticated` の
@@ -166,7 +176,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-<http://localhost:5173> を開き、4 のアカウントでログインする。
+<http://localhost:5173> を開き、「Google でログイン」を押す。
 
 | 症状 | 原因 |
 |---|---|
@@ -175,6 +185,7 @@ npm run dev
 | `The schema must be one of the following: public` | 3 の Exposed schemas に `coach` が入っていない |
 | `permission denied for schema coach` | 同上 |
 | 空だが 0 件しか返らない | 5 の `app_owner` 登録を確認する |
+| ログイン後に count-upper へ飛ばされる | 4 の Redirect URLs が未設定 |
 
 ---
 

@@ -2,12 +2,15 @@ import type { Session } from '@supabase/supabase-js';
 import { db, isConfigured } from './supabase';
 
 /**
- * ログイン方式は暫定でメール + パスワードにしてある。
+ * ログインは Google OAuth のみ。
  *
- * Supabase ダッシュボードでサインアップを無効化する運用なので、
- * アカウントはダッシュボードから手で 1 つ作る。メール配信に依存しないため
- * 設定が最も少なくて済む。マジックリンクや OAuth に替える場合も
- * 差し替えはこのファイルの signIn() だけで済む。
+ * 相乗り先の count-upper が Google SSO を使っており、対象アカウント（auth.users の行）は
+ * Google の identity に紐づくだけでパスワードを持たない。したがってメール + パスワードは
+ * そもそも成立しない。Google provider はプロジェクト側で既に有効になっている。
+ *
+ * count-upper は Next.js のサーバルート（/auth/callback）で認可コードを交換しているが、
+ * こちらは静的配信の SPA でサーバを持たない。supabase-js の detectSessionInUrl に任せ、
+ * リダイレクトで戻ってきた URL の code をブラウザ側（PKCE）で交換する。
  */
 class SessionStore {
 	session = $state<Session | null>(null);
@@ -26,8 +29,13 @@ class SessionStore {
 		});
 	}
 
-	async signIn(email: string, password: string) {
-		const { error } = await db().auth.signInWithPassword({ email, password });
+	async signInWithGoogle() {
+		const { error } = await db().auth.signInWithOAuth({
+			provider: 'google',
+			// 戻り先はダッシュボードの Authentication > URL Configuration で
+			// 許可しておく必要がある（未許可だと Site URL に飛ばされる）
+			options: { redirectTo: `${window.location.origin}/` }
+		});
 		if (error) throw error;
 	}
 

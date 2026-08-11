@@ -41,15 +41,27 @@ PWA は `regenerate_requests` に 1 行入れるところまで実装済み
 
 ## OD-2: PWA のログイン方式
 
-**状態:** 🚧 暫定でメール + パスワード
+**状態:** ✅ 決定（Google OAuth のみ）
 
-[session.svelte.ts](../web/src/lib/session.svelte.ts) に暫定実装がある。
-差し替える場合も `signIn()` だけを直せばよい。
+当初はメール + パスワードを暫定で入れていたが、成立しないことが判明した。
+相乗り先の count-upper が Google SSO を使っており、対象アカウント（`auth.users` の行）は
+Google の identity に紐づくだけで**パスワードを持たない**ため。
 
-- サインアップは無効化する運用なので、アカウントは Supabase ダッシュボードから手で作る
-- メール配信に依存しないため設定が最も少ない
-- マジックリンクにすればパスワード管理が要らなくなる。iOS の PWA からメールアプリへ
-  往復する体験が許容できるかは実機で試して判断する
+- Google provider はプロジェクト側で既に有効。追加設定は不要
+- count-upper は Next.js のサーバルートで認可コードを交換しているが、こちらは静的 SPA な
+  ので `detectSessionInUrl`（PKCE）でブラウザ側で交換する
+- `Authentication > URL Configuration > Redirect URLs` に戻り先の許可が必要
+
+### 残る懸念: iOS のホーム画面 PWA での OAuth
+
+standalone 表示の PWA から OAuth に飛ぶと、戻りが PWA ではなく Safari になることがある。
+実機で確認する（マイルストーン 5）。
+
+問題が出た場合の緩和策:
+
+- セッションは localStorage に永続化され自動リフレッシュされるので、**ログインは事実上初回のみ**。
+  日常運用では OAuth の往復が発生しない
+- それでも詰まるならマジックリンクを検討する
 
 ---
 
