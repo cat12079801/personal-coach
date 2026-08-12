@@ -8,7 +8,7 @@
 | 2 | Garmin コーチのプラン取得 PoC | ✅ 完了 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
 | 3 | 取り込みバッチ → Supabase | ✅ 実データで動作確認済 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
 | 4 | PWA | 🚧 デプロイ済・実データ目視未 | `web/` |
-| 5 | Web Push（実機検証まで） | 🚧 コードのみ・実機未検証 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
+| 5 | Web Push（実機検証まで） | ✅ iOS 実機で確認済 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
 | 6 | メニュー生成ロジック | 🚧 実データで生成済・UI 未 | `menu/rules.py`, `menu/build.py`, `garmin/plan.py` |
 | 7 | keepalive と失敗通知 | ✅ ワークフローに組込済 | `.github/workflows/` |
 
@@ -93,12 +93,26 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
 - [x] 404/410 で購読を削除する処理が入っている
 - [x] PWA 起動時の再購読が入っている
 - [x] 未読カウンタと通知履歴一覧がある
-- [ ] **ホーム画面追加 → 許可要求 → 購読登録が iOS 実機で通る**
-- [ ] **テスト送信が iOS 実機に届く**
-- [ ] **standalone の PWA から Google OAuth で戻ってこられる**（OD-2 の懸念）
+- [x] **ホーム画面追加 → 許可要求 → 購読登録が iOS 実機で通る**
+- [x] **テスト送信が iOS 実機に届く**
+- [x] **standalone の PWA から Google OAuth で戻ってこられる**（OD-2 の懸念は解消）
 
-実機検証だけが残っている。iOS の制約は実機でしか確認できないので、
-Cloudflare Pages へのデプロイ後すぐにここを潰す。
+2026-08-12 に iPhone 実機で確認した。診断の結果は次のとおり。
+
+```
+standalone: true / permission: granted / vapid: 設定済み(87文字)
+serviceWorker: active / subscription: web.push.apple.com / keys: あり / dbRows: 1 件
+```
+
+### 実機で見つかった不具合
+
+- `register()` が installing 状態の registration を返し、active になる前に
+  `pushManager.subscribe()` を呼んで失敗していた → `navigator.serviceWorker.ready` を待つ
+- `persist()` が upsert のエラーを握りつぶしており、保存に失敗しても UI は成功に見えた
+  → 例外にした
+
+どちらも「UI 上は成功しているのに `push_subscriptions` が空」という形で出た。
+**iOS の Web Push は失敗が見えにくいので、保存の成否を必ず表面化させること。**
 
 ### 6. メニュー生成ロジック
 
