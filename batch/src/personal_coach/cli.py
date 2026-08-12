@@ -47,7 +47,9 @@ def ingest() -> int:
     details = ingest_pending_details()
     logging.info("取り込み完了: activities=%d splits=%d details=%d", count, splits, details)
 
-    # TODO(マイルストーン 6): メニュー生成を呼ぶ
+    from .menu.build import build_menu
+
+    build_menu()
     return 0
 
 

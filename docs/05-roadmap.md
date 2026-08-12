@@ -9,7 +9,7 @@
 | 3 | 取り込みバッチ → Supabase | 🚧 実装済・実行未 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
 | 4 | PWA | 🚧 実装済・実データ未検証 | `web/` |
 | 5 | Web Push（実機検証まで） | 🚧 コードのみ・実機未検証 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
-| 6 | メニュー生成ロジック | ⬜ 未着手 | `menu/rules.py` |
+| 6 | メニュー生成ロジック | 🚧 実装済・実データ未実行 | `menu/rules.py`, `menu/build.py`, `garmin/plan.py` |
 | 7 | keepalive と失敗通知 | ✅ ワークフローに組込済 | `.github/workflows/` |
 
 ## 順序の根拠
@@ -99,9 +99,12 @@ Cloudflare Pages へのデプロイ後すぐにここを潰す。
 
 ### 6. メニュー生成ロジック
 
-- [ ] 5 つのルール（[01-overview.md](01-overview.md)）を実装した
-- [ ] `daily_menus.source` に生成根拠を残している
-- [ ] 「メニュー再生成」ボタンから手動リカバリできる
+- [x] ルール R1〜R4（[01-overview.md](01-overview.md)）を実装した。本人レビュー済み
+- [x] `daily_menus.source` に生成根拠を残している（適用ルール・種目ごとの判定理由）
+- [x] PoC の実データ 1 週間ぶんでドライランして配置を目視確認した
+- [ ] 独自筋トレの段階を管理する UI（`strength_programs` の CRUD）
+- [ ] 実データで 1 回生成する（migration 0006 の適用が前提）
+- [ ] 「メニュー再生成」ボタンから手動リカバリできる（OD-1 の決着が必要）
 
 ### 7. keepalive と失敗通知
 
