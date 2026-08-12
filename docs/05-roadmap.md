@@ -5,8 +5,8 @@
 | # | マイルストーン | 状態 | 成果物 |
 |---|---|---|---|
 | 1 | Garmin 認証 + トークンの Supabase 往復 | 🚧 ローカルは動作確認済 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
-| 2 | Garmin コーチのプラン取得 PoC | 🚧 PoC-1 完了 / PoC-2 未実施 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
-| 3 | 取り込みバッチ → Supabase | ⬜ 未着手 | `garmin/sync.py`, `ingest.py` |
+| 2 | Garmin コーチのプラン取得 PoC | ✅ 完了 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
+| 3 | 取り込みバッチ → Supabase | 🚧 実装済・実行未 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
 | 4 | PWA | 🚧 実装済・実データ未検証 | `web/` |
 | 5 | Web Push（実機検証まで） | 🚧 コードのみ・実機未検証 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
 | 6 | メニュー生成ロジック | ⬜ 未着手 | `menu/rules.py` |
@@ -57,15 +57,19 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
       （`get_adaptive_training_plan_by_id()` の `taskList`）
 - [x] 「ポイント練習 / イージー / 休養」をどのフィールドで判定するか決めた
       （`trainingEffectLabel` と `restDay`）
-- [ ] `get_activity_types()` でボルダリング・フィギュアの `type_key` を確認した
+- [x] `get_activity_types()` でボルダリング・フィギュアの `type_key` を確認した
+      （ボルダリングは未記録のため未確定。クライミング系 4 つをまとめて扱う）
 - [x] PoC-1 の結果を [06-poc-notes.md](06-poc-notes.md) に記録した
 
 ### 3. 取り込みバッチ → Supabase
 
-- [ ] 差分同期（既知 ID で打ち切り）が動く
-- [ ] `raw` を保存している
-- [ ] ラン splits の 2 段目ジョブが動く
-- [ ] 429 を握って指数バックオフする
+- [x] 差分同期（既知 ID で打ち切り）
+- [x] `raw` を保存している
+- [x] ラン splits の 2 段目ジョブ
+- [x] クライミング系・スケートの詳細（RPE / Feel）を追う 3 段目ジョブ
+- [x] 429 を握って指数バックオフする
+- [x] 初回バックフィルをページ数で区切れる（`BACKFILL_PAGES`）
+- [ ] **実データで 1 回流す**（migration 0005 の適用が前提）
 - [ ] 初回バックフィルが完走する
 
 ### 4. PWA

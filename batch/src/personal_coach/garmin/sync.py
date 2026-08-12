@@ -35,10 +35,18 @@ def with_backoff[T](fn: Callable[[], T], *, attempts: int = 5, base_sec: float =
     raise AssertionError("unreachable")
 
 
-def fetch_new_activities(client: Any, known_ids: set[str]) -> list[dict[str, Any]]:
-    """既知 ID に当たるまで新しい順に取得する。"""
+def fetch_new_activities(
+    client: Any, known_ids: set[str], *, max_pages: int | None = None
+) -> list[dict[str, Any]]:
+    """既知 ID に当たるまで新しい順に取得する。
+
+    初回は known_ids が空なので全履歴を舐めることになる。Garmin は IP 単位で
+    レート制限をかけてくるので、max_pages で 1 回の実行を区切れるようにしてある。
+    区切った場合は次回の実行で続きから取る（既知 ID で打ち切るため重複しない）。
+    """
     fetched: list[dict[str, Any]] = []
     start = 0
+    pages = 0
     while True:
         batch = with_backoff(lambda s=start: client.get_activities(start=s, limit=PAGE_SIZE))
         if not batch:
@@ -47,6 +55,10 @@ def fetch_new_activities(client: Any, known_ids: set[str]) -> list[dict[str, Any
             if str(activity["activityId"]) in known_ids:
                 return fetched
             fetched.append(activity)
+        pages += 1
+        if max_pages is not None and pages >= max_pages:
+            logger.info("max_pages=%d に達したので打ち切る（%d 件）", max_pages, len(fetched))
+            return fetched
         start += PAGE_SIZE
         time.sleep(PAGE_INTERVAL_SEC)
 
@@ -54,3 +66,12 @@ def fetch_new_activities(client: Any, known_ids: set[str]) -> list[dict[str, Any
 def fetch_splits(client: Any, garmin_activity_id: str) -> dict[str, Any]:
     """ランの splits を取得する。サマリ取り込みとは別ジョブで呼ぶ。"""
     return with_backoff(lambda: client.get_activity_splits(garmin_activity_id))
+
+
+def fetch_detail(client: Any, garmin_activity_id: str) -> dict[str, Any]:
+    """アクティビティ詳細を取得する。
+
+    一覧には主観強度（directWorkoutFeel / directWorkoutRpe）が入らないので、
+    心拍が当てにならない種目はこちらを取りに行く（docs/06-poc-notes.md の PoC-2）。
+    """
+    return with_backoff(lambda: client.get_activity(garmin_activity_id))

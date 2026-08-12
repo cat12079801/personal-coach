@@ -1,49 +1,83 @@
-"""Garmin アクティビティの取り込み（マイルストーン 3・未着手）。
+"""Garmin アクティビティの取り込み。
 
-**正規化はまだ書かない。**
-`get_activities()` のレスポンス形状は PoC-1 / PoC-2 で実データをダンプして確認してから
-`_normalize()` を実装する（docs/06-poc-notes.md）。推測で書くと必ず作り直しになる。
+正規化に使うフィールドは PoC-2 で実データを確認済み（docs/06-poc-notes.md）。
 
-取り込みの流れ:
-  1. 既知の garmin_activity_id を DB から引く
-  2. 新しい順に取得し、既知 ID に当たったら打ち切る（garmin.sync.fetch_new_activities）
-  3. raw をそのまま入れつつ upsert する
-  4. ラン種目は running_details の行を splits=null で作る
-  5. splits 未取得のランだけを別ジョブで追う（2 段ジョブ）
+取り込みは 3 段構え。1 回の実行で全部やるが、それぞれ独立して再実行できる。
+
+  1. サマリ  : 差分同期して activities に upsert。raw を必ず保存する
+  2. splits  : ランのうち splits 未取得のものだけ追う
+  3. 詳細    : 心拍が当てにならない種目（クライミング系・スケート）の RPE を取る
+
+2 と 3 を分けているのは、1 件ごとに API を叩く必要があり、初回バックフィルで
+まとめてやると Garmin のレート制限に当たるため。1 回の実行で追う件数に上限を設ける。
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 from typing import Any
 
 from .db import client, known_activity_ids
+from .garmin import sports
 from .garmin.auth import garmin_session
-from .garmin.sync import fetch_new_activities, fetch_splits
+from .garmin.sync import fetch_detail, fetch_new_activities, fetch_splits
 
 logger = logging.getLogger(__name__)
+
+# 1 回の実行で追う 2 段目の件数。初回バックフィルはこれを何度か回して埋める
+SPLITS_PER_RUN = 20
+DETAILS_PER_RUN = 20
+
+
+def _int(value: Any) -> int | None:
+    return None if value is None else int(value)
+
+
+def _to_utc_iso(value: str | None) -> str | None:
+    """`startTimeGMT` は "2026-08-10 22:51:34" 形式の素の文字列で返る。"""
+    if not value:
+        return None
+    return dt.datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=dt.UTC).isoformat()
 
 
 def _normalize(activity: dict[str, Any]) -> dict[str, Any]:
     """Garmin のアクティビティ JSON を activities 行に落とす。
 
-    PoC でダンプした実データを見てから実装すること。
-    どのフィールドが sport / started_at / duration_sec / avg_hr / max_hr / calories に
-    対応するかは機種と設定に依存するため、ここを推測で書かない。
+    正規化に失敗しても raw さえ入っていれば後から復旧できる（docs/04-data-model.md）。
+    そのため、取れないフィールドは None にして落とさない。
     """
-    raise NotImplementedError("PoC-1 / PoC-2 の結果を docs/06-poc-notes.md に記録してから実装する")
+    return {
+        "garmin_activity_id": str(activity["activityId"]),
+        "sport": sports.sport_of(activity),
+        "started_at": _to_utc_iso(activity.get("startTimeGMT")),
+        "duration_sec": _int(activity.get("duration")),
+        "avg_hr": _int(activity.get("averageHR")),
+        "max_hr": _int(activity.get("maxHR")),
+        "calories": _int(activity.get("calories")),
+        "raw": activity,
+    }
 
 
-def _is_running(row: dict[str, Any]) -> bool:
-    """ラン種目か。type_key は PoC-2 で確定させる。"""
-    raise NotImplementedError("PoC-2 で type_key を確定させてから実装する")
+def _running_detail_row(activity: dict[str, Any], activity_id: str) -> dict[str, Any]:
+    """averageSpeed は m/s。avg_pace は sec/km に直して持つ。"""
+    speed = activity.get("averageSpeed")
+    return {
+        "activity_id": activity_id,
+        "distance_m": activity.get("distance"),
+        "avg_pace": (1000 / speed) if speed else None,
+        "elev_gain": activity.get("elevationGain"),
+    }
 
 
-def ingest_activities() -> int:
-    """新規アクティビティを取り込む。取り込んだ件数を返す。"""
+def ingest_activities(max_pages: int | None = None) -> int:
+    """新規アクティビティを取り込む。取り込んだ件数を返す。
+
+    max_pages は初回バックフィルを区切るためのもの。区切っても次回の実行で続きを取る。
+    """
     known = known_activity_ids()
     with garmin_session() as garmin:
-        activities = fetch_new_activities(garmin, known)
+        activities = fetch_new_activities(garmin, known, max_pages=max_pages)
 
     logger.info("新規アクティビティ %d 件", len(activities))
     if not activities:
@@ -52,29 +86,35 @@ def ingest_activities() -> int:
     rows = [_normalize(a) for a in activities]
     client().table("activities").upsert(rows, on_conflict="garmin_activity_id").execute()
 
-    running = [r for r in rows if _is_running(r)]
+    # ラン種目は running_details の行を作る。splits は 2 段目で埋める
+    running = [a for a in activities if sports.is_running(sports.sport_of(a))]
     if running:
-        ids = _activity_ids_for(r["garmin_activity_id"] for r in running)
-        client().table("running_details").upsert(
-            [{"activity_id": i} for i in ids], on_conflict="activity_id"
-        ).execute()
+        ids = _activity_id_map(str(a["activityId"]) for a in running)
+        detail_rows = [
+            _running_detail_row(a, ids[str(a["activityId"])])
+            for a in running
+            if str(a["activityId"]) in ids
+        ]
+        client().table("running_details").upsert(detail_rows, on_conflict="activity_id").execute()
+        logger.info("running_details %d 件", len(detail_rows))
 
     return len(rows)
 
 
-def _activity_ids_for(garmin_ids: Any) -> list[str]:
+def _activity_id_map(garmin_ids: Any) -> dict[str, str]:
+    """garmin_activity_id -> activities.id"""
     res = (
         client()
         .table("activities")
-        .select("id")
+        .select("id, garmin_activity_id")
         .in_("garmin_activity_id", list(garmin_ids))
         .execute()
     )
-    return [row["id"] for row in res.data]
+    return {row["garmin_activity_id"]: row["id"] for row in res.data}
 
 
-def ingest_pending_splits(limit: int = 20) -> int:
-    """splits 未取得のランを追う 2 段目ジョブ。取得件数を返す。"""
+def ingest_pending_splits(limit: int = SPLITS_PER_RUN) -> int:
+    """splits 未取得のランを追う。取得件数を返す。"""
     res = (
         client()
         .table("running_details")
@@ -86,12 +126,50 @@ def ingest_pending_splits(limit: int = 20) -> int:
     if not res.data:
         return 0
 
+    now = dt.datetime.now(dt.UTC).isoformat()
     with garmin_session() as garmin:
         for row in res.data:
             garmin_id = row["activities"]["garmin_activity_id"]
             splits = fetch_splits(garmin, garmin_id)
-            client().table("running_details").update({"splits": splits, "fetched_at": "now()"}).eq(
+            client().table("running_details").update({"splits": splits, "fetched_at": now}).eq(
                 "activity_id", row["activity_id"]
             ).execute()
 
+    logger.info("splits %d 件", len(res.data))
+    return len(res.data)
+
+
+def ingest_pending_details(limit: int = DETAILS_PER_RUN) -> int:
+    """心拍が当てにならない種目の詳細（RPE / Feel）を追う。取得件数を返す。"""
+    res = (
+        client()
+        .table("activities")
+        .select("id, garmin_activity_id, sport")
+        .is_("detail_fetched_at", "null")
+        .in_("sport", sorted(sports.NEEDS_RPE))
+        .order("started_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    if not res.data:
+        return 0
+
+    now = dt.datetime.now(dt.UTC).isoformat()
+    with garmin_session() as garmin:
+        for row in res.data:
+            detail = fetch_detail(garmin, row["garmin_activity_id"])
+            summary = detail.get("summaryDTO") or {}
+            # directWorkoutRpe / directWorkoutFeel はいずれも 0-100 スケール。
+            # RPE は見慣れた 0-10 に直して持つ
+            rpe = summary.get("directWorkoutRpe")
+            client().table("activities").update(
+                {
+                    "rpe": round(rpe / 10) if rpe is not None else None,
+                    "feel": _int(summary.get("directWorkoutFeel")),
+                    "detail_raw": detail,
+                    "detail_fetched_at": now,
+                }
+            ).eq("id", row["id"]).execute()
+
+    logger.info("詳細 %d 件", len(res.data))
     return len(res.data)

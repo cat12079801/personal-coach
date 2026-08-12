@@ -7,8 +7,8 @@ on:
     - cron: '0 18 * * *'
   workflow_dispatch:
     inputs:
-      backfill_days:
-        description: 'バックフィルする日数（空なら差分同期のみ）'
+      backfill_pages:
+        description: '初回バックフィルで取得するページ数の上限（50 件/ページ。空なら打ち切りなし）'
         required: false
         default: ''
 
@@ -43,8 +43,8 @@ jobs:
           GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
           GOOGLE_CALENDAR_ICS_URL: ${{ secrets.GOOGLE_CALENDAR_ICS_URL }}
-          # workflow_dispatch の入力はシェルに直接展開せず env 経由で渡し、Python 側で検証する
-          BACKFILL_DAYS: ${{ inputs.backfill_days }}
+          # workflow_dispatch の入力はシェルに直接展開せず env 経由で渡し、Python 側で int に落とす
+          BACKFILL_PAGES: ${{ inputs.backfill_pages }}
         run: uv run pc-ingest
 
       - name: 失敗を Discord に通知

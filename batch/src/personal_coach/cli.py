@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import os
 import sys
 
 JST = dt.timezone(dt.timedelta(hours=9))
@@ -24,13 +25,27 @@ def today_jst() -> dt.date:
     return dt.datetime.now(JST).date()
 
 
+def _max_pages() -> int | None:
+    """workflow_dispatch の入力。無検証でそのまま使わず、必ず int に落とす。"""
+    raw = (os.environ.get("BACKFILL_PAGES") or "").strip()
+    if not raw:
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        logging.warning("BACKFILL_PAGES が数値でないので無視する")
+        return None
+    return value if value > 0 else None
+
+
 def ingest() -> int:
     _setup_logging()
-    from .ingest import ingest_activities, ingest_pending_splits
+    from .ingest import ingest_activities, ingest_pending_details, ingest_pending_splits
 
-    count = ingest_activities()
+    count = ingest_activities(max_pages=_max_pages())
     splits = ingest_pending_splits()
-    logging.info("取り込み完了: activities=%d splits=%d", count, splits)
+    details = ingest_pending_details()
+    logging.info("取り込み完了: activities=%d splits=%d details=%d", count, splits, details)
 
     # TODO(マイルストーン 6): メニュー生成を呼ぶ
     return 0
