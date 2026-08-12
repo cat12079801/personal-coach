@@ -27,11 +27,19 @@ npm run dev
 | 項目 | 値 |
 |---|---|
 | Root directory | `web` |
-| Build command | `npm ci && npm run build` |
+| Build command | `npm run build` |
 | Build output directory | `build` |
+
+**依存インストールは Cloudflare 側が自動で行う**ので、ビルドコマンドに `npm ci` を含めない。
+含めると `npm ci && npm run build` の `&&` が解釈されず、`npm ci` が
+`&& npm run build` を引数として受け取って usage を吐いて失敗する。
 
 `build` は Root directory からの相対。もし "output directory not found" で失敗したら
 `web/build` に変えて試す。
+
+依存が入らず `vite: not found` で落ちる場合は、`package.json` に
+`"cf-build": "npm ci && npm run build"` を足してビルドコマンドを `npm run cf-build` にする。
+`&&` を package.json 側に置けばシェルが解釈するので通る。
 
 Node のバージョンは [.nvmrc](.nvmrc) で固定している。
 
