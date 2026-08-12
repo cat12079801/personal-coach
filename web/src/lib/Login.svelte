@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { session } from '$lib/session.svelte';
+	import { buildInfoLine } from '$lib/build-info';
 
 	let error = $state('');
 	let busy = $state(false);
@@ -50,6 +51,9 @@
 	<p class="muted note">
 		count-upper と同じ Google アカウントでログインする。
 	</p>
+
+	<!-- ログイン前でもどのデプロイを開いているか分かるようにする -->
+	<p class="muted build">{buildInfoLine()}</p>
 </div>
 
 <style>
@@ -78,5 +82,11 @@
 	.note {
 		margin-top: 1.5rem;
 		font-size: 0.8rem;
+	}
+
+	.build {
+		margin: 0.25rem 0 0;
+		font-size: 0.7rem;
+		font-variant-numeric: tabular-nums;
 	}
 </style>
