@@ -4,7 +4,7 @@
 
 | # | マイルストーン | 状態 | 成果物 |
 |---|---|---|---|
-| 1 | Garmin 認証 + トークンの Supabase 往復 | 🚧 ローカルは動作確認済 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
+| 1 | Garmin 認証 + トークンの Supabase 往復 | ✅ GHA でも成功 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
 | 2 | Garmin コーチのプラン取得 PoC | ✅ 完了 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
 | 3 | 取り込みバッチ → Supabase | ✅ 実データで動作確認済 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
 | 4 | PWA | 🚧 デプロイ済・実データ目視未 | `web/` |
@@ -47,7 +47,8 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
 - [x] DB のトークンだけで（パスワードなしで）ログインできる
 - [x] リフレッシュ後のトークンが DB に書き戻される
       （`Client.dump()` の呼び出しを修正。旧実装は `garth.dump()` を叩いて失敗していた）
-- [ ] GitHub Actions 上（非対話）で 1 回成功する
+- [x] GitHub Actions 上（非対話）で 1 回成功する（2026-08-12）
+      DB のトークンだけでログインでき、Garmin 側の bot 検知にもレート制限にも当たらなかった
 
 ### 2. Garmin コーチのプラン取得 PoC
 
