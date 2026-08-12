@@ -249,6 +249,8 @@ export const designCompletions = [
 				stage: 2,
 				unit: 'reps' as const,
 				planned_sets: 3,
+				// メニューどおりにいかず数値を入れた例。もう一方は完了直後（メニューどおり）の見た目になる
+				as_planned: false,
 				sets: [{ value: 12 }, { value: 11 }, { value: 8 }]
 			}
 		]

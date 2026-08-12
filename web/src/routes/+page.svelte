@@ -3,6 +3,7 @@
 	import { designMode } from '$lib/design';
 	import { designCompletions, designMenu } from '$lib/fixtures';
 	import { todayJst, formatDateTime, formatDuration, formatEventTime } from '$lib/format';
+	import { isAsPlanned } from '$lib/types';
 	import type {
 		DailyMenu,
 		OwnStrength,
@@ -48,11 +49,11 @@
 	}
 
 	/**
-	 * 完了を押した時点の実績。**メニューのセット数ぶんの空枠だけを作る。**
+	 * 完了を押した時点の実績。**「メニューどおり実施した」として記録する。**
 	 *
-	 * レップ数・秒数は入れない。メニューは「15 秒キープ」等の目標であって実績ではなく、
-	 * 目標値を初期値に入れると「やった数」と区別が付かなくなるため。
-	 * 数値と セット数は後から編集する。
+	 * 目標値を数値欄に写すことはしない。メニューの「15 秒キープ」は目標であって実績であり、
+	 * 写してしまうと「実際にやった数」と区別が付かなくなる。代わりに `as_planned` を立て、
+	 * セット数ぶんの空枠だけ作る。メニューと違うことをしたときだけ数値を入れて上書きする。
 	 */
 	function initialEntry(item: OwnStrength): StrengthEntry {
 		return {
@@ -62,6 +63,7 @@
 			// キープ系は秒で数える。ラベルから当たりを付けるだけなので UI で変えられる
 			unit: /秒/.test(item.label ?? '') ? 'seconds' : 'reps',
 			planned_sets: item.sets,
+			as_planned: true,
 			sets: Array.from({ length: item.sets ?? 0 }, () => ({ value: null }))
 		};
 	}
@@ -72,7 +74,9 @@
 
 	function actualSummary(entry: StrengthEntry): string {
 		const count = `${entry.sets.length} セット`;
-		if (entry.sets.every((set) => set.value == null)) return `${count}・数値は未記入`;
+		const blank = entry.sets.every((set) => set.value == null);
+		if (blank && isAsPlanned(entry)) return `メニューどおり・${count}`;
+		if (blank) return `${count}・数値は未記入`;
 		return `${count}・${entry.sets.map((set) => set.value ?? '—').join(' / ')} ${unitLabel(entry)}`;
 	}
 
@@ -177,7 +181,19 @@
 		const sets = done[programId]?.entry.sets;
 		if (!sets) return;
 		updateEntry(programId, {
+			// 数値を入れた時点で「メニューどおり」ではなくなる
+			as_planned: false,
 			sets: sets.map((set, i) => (i === index ? { value: raw === '' ? null : Number(raw) } : set))
+		});
+	}
+
+	/** 「メニューどおり」に戻す。入れた数値は破棄する（提示どおりの意味と矛盾するため）。 */
+	function setAsPlanned(programId: string, value: boolean) {
+		const sets = done[programId]?.entry.sets;
+		if (!sets) return;
+		updateEntry(programId, {
+			as_planned: value,
+			sets: value ? sets.map(() => ({ value: null })) : sets
 		});
 	}
 
@@ -320,6 +336,20 @@
 						{@const record = done[item.program_id]}
 						<details style="margin-top: 0.75rem;">
 							<summary class="muted">実績 {actualSummary(record.entry)}</summary>
+
+							<!--
+								ふだんはメニューどおりに実施して完了を押すだけなので、それを既定にする。
+								違うことをしたときだけチェックを外して数値を入れる。
+							-->
+							<label style="margin-top: 0.75rem;">
+								<span>メニューどおり実施した</span>
+								<input
+									type="checkbox"
+									style="width: auto;"
+									checked={isAsPlanned(record.entry)}
+									onchange={(e) => setAsPlanned(item.program_id, e.currentTarget.checked)}
+								/>
+							</label>
 
 							<label style="margin-top: 0.75rem;">
 								<span>数え方</span>

@@ -54,6 +54,11 @@ garmin_tokens      (id pk, token_json jsonb, updated_at)
 レップ数・秒数・セット数は後からいつでも編集できる（`planned_sets` は提示された値の控えで、
 実績を変えても書き換えない）。
 
+ただし**ふだんは提示どおりに実施して完了を押すだけ**なので、それを既定にする。完了時に
+`as_planned: true` を立て、表示は「メニューどおり・3 セット」になる。数値を 1 つでも入れると
+`as_planned` は false になり、`sets` が正となる。`as_planned` が無い行（この項目を足す前に
+記録したもの）は true として扱う。
+
 **この記録はメニュー生成のルールには影響しない。** 実施回数と間隔の判定は
 過去の `daily_menus` に何を置いたかで数える（[rules.py](../batch/src/personal_coach/menu/rules.py)）。
 実績の入力精度に依存させないため。
@@ -83,7 +88,8 @@ where s.id is null and k.id is null;
 // strength_logs.exercises — メニューから完了にした行（要素は常に 1 個）
 // unit がレップと秒を切り替える。プランシェ等のキープ系は秒で数える
 [{ "name": "タックプランシェ 15 秒キープ", "stage": 5, "unit": "seconds",
-   "planned_sets": 3,                                  // メニューの提示。書き換えない
+   "planned_sets": 3,            // メニューの提示。書き換えない
+   "as_planned": false,          // 提示どおりに実施したか。完了直後は true
    "sets": [{ "value": 15 }, { "value": 12 }] }]        // 実績。後から編集する
 
 // skating_logs.elements

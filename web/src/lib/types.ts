@@ -140,5 +140,18 @@ export type StrengthEntry = {
 	unit: 'reps' | 'seconds';
 	/** メニューが提示したセット数。実績を変えてもこれは書き換えない */
 	planned_sets: number | null;
+	/**
+	 * メニューの提示どおりに実施したか。完了を押した時点では true。
+	 * 数値を 1 つでも入れると false になり、`sets` が実績の正となる。
+	 *
+	 * 省略されている行（この項目を足す前に記録したもの）は true として扱う。
+	 * 「完了を押したがメニューと違うことをした」場合だけ明示的に false が入る。
+	 */
+	as_planned?: boolean;
 	sets: StrengthSet[];
 };
+
+/** `as_planned` は省略を true とみなす。 */
+export function isAsPlanned(entry: StrengthEntry): boolean {
+	return entry.as_planned ?? true;
+}
