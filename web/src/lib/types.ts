@@ -62,6 +62,26 @@ export type CalendarEvent = {
 	all_day: boolean;
 };
 
+/** 独自に足す筋トレのプログラム。段階の中身は本人が定義する（docs/08-open-decisions.md の OD-5）。 */
+export type Stage = {
+	label: string;
+	sets: number | null;
+	note: string | null;
+};
+
+export type StrengthProgram = {
+	id: string;
+	name: string;
+	/** stages の添字（1 始まり）。手動で上げ下げする */
+	stage: number;
+	stages: Stage[];
+	weekly_target: number;
+	/** 前回実施日との日数差の下限。2 なら「中 1 日以上」 */
+	min_gap_days: number;
+	sort_order: number;
+	active: boolean;
+};
+
 export type NotificationRow = {
 	id: string;
 	sent_at: string;

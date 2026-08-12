@@ -71,7 +71,8 @@ publishable key（`sb_publishable_...`）はフロントに埋め込まれる公
 | `/unlinked` | 未紐付けアクティビティ。ここから手動ログを追記する |
 | `/logs` | 手動登録（筋トレ / スケート）+ 最近の記録 |
 | `/notifications` | 通知履歴。未読カウンタはタブに出る |
-| `/settings` | 通知の有効化・ログアウト |
+| `/settings` | 通知の有効化・筋トレプログラムへの導線・ログアウト |
+| `/programs` | 独自筋トレの種目と段階を管理する。**ここが空だとメニューに筋トレが出ない** |
 
 未ログイン時は [Login.svelte](src/lib/Login.svelte) を出す。ログインは **Google OAuth のみ**
 （[docs/08-open-decisions.md](../docs/08-open-decisions.md) の OD-2）。

@@ -78,6 +78,14 @@
 		{/if}
 	</div>
 
+	<h2>筋トレプログラム</h2>
+	<div class="card">
+		<p class="muted" style="margin-top: 0;">
+			上半身・スキル系の種目と段階を管理する。ここが空だとメニューに筋トレが出ない。
+		</p>
+		<a class="button" href="/programs" style="display: inline-block;">プログラムを編集</a>
+	</div>
+
 	<h2>アカウント</h2>
 	<div class="card">
 		<p class="muted">{session.session?.user.email}</p>
