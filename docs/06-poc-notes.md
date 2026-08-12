@@ -245,16 +245,48 @@ strength_training : distance は 0。totalSets / totalReps が入る
 
 ---
 
-## 検討事項: 手動登録した種目を Garmin 側に書き戻すか
+## 決定: 独自筋トレは Garmin 側に書き戻さない
 
-**状態:** ⬜ 当面は書き戻さない方針
+**状態:** ✅ 決定（2026-08-12。アプリ内だけで管理する）
 
-技術的には `create_manual_activity()` / `set_activity_exercise_sets()` で可能。
+独自筋トレ（[10-strength-programs.md](10-strength-programs.md) の 3 種目）は、
+プログラム・段階・実績のいずれも `coach` スキーマだけで持つ。Garmin へは何も書かない。
+
+### 実績を書き戻す方式（却下）
+
+`create_manual_activity()` / `set_activity_exercise_sets()` で可能。
 
 しかし Garmin の Training Load 計算に手動アクティビティがどう反映されるかは**仕様非公開**であり、
 ランのトレーニングステータス判定が意図せず振れる恐れがある。
 
-再検討するなら、テスト用に 1 件だけ書き戻して Training Status の変化を観測してから判断する。
+### ワークアウトとして登録する方式（却下）
+
+`garminconnect` 0.3.9 には `upload_strength_workout()` / `upload_workout()` /
+`update_workout()` / `schedule_workout()` / `push_workout_to_device()` が揃っており、
+テンプレートの登録・カレンダー配置・デバイス転送まで技術的には可能。
+
+却下の理由は種目名である。`garminconnect.exercises` は Garmin のワークアウトエディタの
+全種目（1527 種目 / 47 カテゴリ）だが、**プランシェ系・倒立キープ系が 1 つも無い**。
+
+| 段階 | カタログ |
+|---|---|
+| ノーマルプッシュアップ | `PUSH_UP` / `PUSH_UP` |
+| ダイヤモンドプッシュアップ | `PUSH_UP` / `DIAMOND_PUSH_UP` |
+| アーチャープッシュアップ | 無し |
+| 擬似プランシェ〜フルプランシェ（8 段階） | 無し |
+| フロッグスタンド | 無し |
+| 壁倒立・自立倒立キープ | 無し（`HANDSTAND_PUSH_UP` はキープではない） |
+| タック／ストラドルプレス | 無し |
+
+近いカテゴリに寄せて実際の段階名を `workoutName` と `description` に入れる回避策はあるが、
+時計に出るのは Garmin 側の種目名なので「ストラドルプランシェが L Sit と表示される」ズレが残る。
+秒数キープも `create_strength_exercise_step()` は reps 専用で、`ConditionType.TIME` を
+手組みする必要があり、strength ワークアウトで通るかは未検証。
+
+**管理先が二重になる割に得るものが名前の崩れたテンプレートしかないため採らない。**
+
+再検討する条件は「Garmin のカタログにプランシェ系が入る」または
+「表示名を任意文字列で入れられるようになる」こと。
 
 ---
 

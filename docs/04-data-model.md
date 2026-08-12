@@ -17,7 +17,9 @@ activities (
 running_details (activity_id fk, distance_m, avg_pace, elev_gain, splits jsonb)
 
 -- 手動登録。activity_id は NULL 許容（必須）
-strength_logs  (id, activity_id fk null, performed_at, exercises jsonb, note)
+-- strength_logs の program_id / menu_date は「メニューから完了にした行」の目印（0007）
+strength_logs  (id, activity_id fk null, performed_at, exercises jsonb, note,
+                program_id fk null, menu_date null)
 skating_logs   (id, activity_id fk null, practiced_at, elements jsonb, note)
 
 daily_menus        (date pk, generated_at, source jsonb, menu jsonb, notified_at)
@@ -37,6 +39,25 @@ garmin_tokens      (id pk, token_json jsonb, updated_at)
 非公式 API はレスポンス形状が予告なく変わるため、正規化に失敗しても後から再パースできるように
 しておく。取り込み時点で正規化に失敗しても、`raw` さえ入っていれば復旧できる。
 
+### 独自筋トレの完了は `strength_logs` に入れる
+
+専用テーブルを作らない。手動登録と同じ場所に入れておけば履歴が 1 本にまとまり、
+未紐付け一覧から Garmin アクティビティに後付けで紐付ける導線もそのまま使える。
+
+- `program_id` と `menu_date` が入っている行 = メニューの「完了にする」で作られた行
+- 両方 `null` の行 = `/logs` で自由入力した行
+
+`(menu_date, program_id)` に部分 UNIQUE を張って二重記録を防ぐ。取り消しは行の削除。
+
+**実績はメニューと独立に持つ。** メニューの「3 セット」「15 秒キープ」は目標であって
+実績ではないため、完了を押した時点では**セット数ぶんの空枠だけ**を作り、数値は入れない。
+レップ数・秒数・セット数は後からいつでも編集できる（`planned_sets` は提示された値の控えで、
+実績を変えても書き換えない）。
+
+**この記録はメニュー生成のルールには影響しない。** 実施回数と間隔の判定は
+過去の `daily_menus` に何を置いたかで数える（[rules.py](../batch/src/personal_coach/menu/rules.py)）。
+実績の入力精度に依存させないため。
+
 ### 未紐付けアクティビティの導線
 
 UI には「**未紐付けの Garmin アクティビティ一覧**」を出し、そこから詳細を追記する導線を作る。
@@ -52,10 +73,18 @@ where s.id is null and k.id is null;
 
 いずれも手動登録なので自分で決めてよい。以下は初期案であり、UI 実装時に確定させる。
 
+**`strength_logs.exercises` には 2 種類の形が入る。** 読む側は両方を許容すること。
+
 ```jsonc
-// strength_logs.exercises
+// strength_logs.exercises — /logs の自由入力（FIELDS が実体。OD-3）
 [{ "name": "腕立て伏せ", "sets": [{ "reps": 20 }, { "reps": 18 }] },
  { "name": "デッドリフト", "sets": [{ "reps": 8, "weight_kg": 80 }] }]
+
+// strength_logs.exercises — メニューから完了にした行（要素は常に 1 個）
+// unit がレップと秒を切り替える。プランシェ等のキープ系は秒で数える
+[{ "name": "タックプランシェ 15 秒キープ", "stage": 5, "unit": "seconds",
+   "planned_sets": 3,                                  // メニューの提示。書き換えない
+   "sets": [{ "value": 15 }, { "value": 12 }] }]        // 実績。後から編集する
 
 // skating_logs.elements
 [{ "name": "シングルアクセル", "attempts": 10, "success": 4, "note": "" }]

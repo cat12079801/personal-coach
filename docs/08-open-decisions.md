@@ -72,6 +72,11 @@ standalone 表示の PWA から OAuth に飛ぶと、戻りが PWA ではなく 
 [logs/+page.svelte](../web/src/routes/logs/+page.svelte) の `FIELDS` が実体。
 運用しながら項目を足し引きする前提で、DB 側は `jsonb` のままにしてある。
 
+**メニューの「完了にする」で入る行は別の形になる**（`unit` / `planned_sets` / `sets[].value`）。
+同じ列に 2 種類が入るので、読む側は両方を許容すること。形状は
+[04-data-model.md](04-data-model.md#jsonb-カラムの想定形状) と
+`web/src/lib/types.ts` の `StrengthEntry`。
+
 ---
 
 ## OD-4: ボルダリングの RPE をどこで入れるか
@@ -114,7 +119,9 @@ PoC-2 で確認した。Garmin のアクティビティ詳細に主観強度が�
 
 ## OD-5: 筋トレのルールが Garmin コーチと重複している
 
-**状態:** ⬜ 未決定（メニュー生成の実装前に決める）
+**状態:** ✅ 決定（案 C。マイルストーン 6 で実装済み）
+
+Garmin 側への書き戻しも行わない（[06-poc-notes.md](06-poc-notes.md#決定-独自筋トレは-garmin-側に書き戻さない)）。
 
 PoC-1 で判明した。**Garmin コーチは筋トレまでスケジュールしている。**
 

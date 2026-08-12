@@ -107,3 +107,38 @@ export type ManualLog = {
 	created_at: string;
 	[key: string]: unknown;
 };
+
+/**
+ * メニューから「完了」にした独自筋トレ。
+ * strength_logs に program_id / menu_date 付きで入る（migration 0007）。
+ */
+export type StrengthCompletion = {
+	id: string;
+	program_id: string;
+	menu_date: string;
+	exercises: StrengthEntry[] | null;
+};
+
+/** 実績 1 セット。`value` の意味は `StrengthEntry.unit` が決める。 */
+export type StrengthSet = {
+	/** レップ数または秒数。未記入は null */
+	value: number | null;
+};
+
+/**
+ * `strength_logs.exercises` の 1 要素。
+ *
+ * **メニューが提示した内容（`planned_sets`）と実績（`sets`）を分けて持つ。**
+ * 完了を押した時点ではメニューのセット数ぶんの空枠が入るだけで、実際のレップ数・
+ * セット数はメニューと独立に後から編集する。段階を上げる判断は自分で行うため
+ * （OD-5）、実績がメニューと食い違っていても生成側は何も見ない。
+ */
+export type StrengthEntry = {
+	name: string;
+	stage?: number;
+	/** キープ系（プランシェ・倒立）は秒で数える。UI で切り替えられる */
+	unit: 'reps' | 'seconds';
+	/** メニューが提示したセット数。実績を変えてもこれは書き換えない */
+	planned_sets: number | null;
+	sets: StrengthSet[];
+};

@@ -21,7 +21,7 @@ count-upper の `public.counters` / `public.count_logs` はそのまま残す。
 
 ## 2. マイグレーションを適用する
 
-`supabase/migrations/` の 3 本を **0001 → 0002 → 0003 の順に**適用する。
+`supabase/migrations/` を**ファイル名の番号順に**適用する。
 すべて `coach` スキーマに作られるので、count-upper 側とは混ざらない。
 
 ### 方法 A: CLI（推奨）
@@ -55,11 +55,8 @@ supabase db push
 
 ### 方法 B: SQL Editor（相乗りではこちらが安全）
 
-ダッシュボードの `SQL Editor` に、以下を**この順で**貼って実行する。
-
-1. `supabase/migrations/0001_init.sql`
-2. `supabase/migrations/0002_owner_only_rls.sql`
-3. `supabase/migrations/0003_regenerate_requests.sql`
+ダッシュボードの `SQL Editor` に、`supabase/migrations/` のファイルを**番号順に**貼って実行する
+（`0001_init.sql` → `0002_owner_only_rls.sql` → … → `0007_strength_log_completion.sql`）。
 
 履歴テーブルを触らないので、count-upper 側に影響しない。
 
