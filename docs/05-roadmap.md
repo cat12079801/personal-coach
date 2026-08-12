@@ -5,7 +5,7 @@
 | # | マイルストーン | 状態 | 成果物 |
 |---|---|---|---|
 | 1 | Garmin 認証 + トークンの Supabase 往復 | 🚧 ローカルは動作確認済 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
-| 2 | Garmin コーチのプラン取得 PoC | ⬜ 未着手 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
+| 2 | Garmin コーチのプラン取得 PoC | 🚧 PoC-1 完了 / PoC-2 未実施 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
 | 3 | 取り込みバッチ → Supabase | ⬜ 未着手 | `garmin/sync.py`, `ingest.py` |
 | 4 | PWA | 🚧 実装済・実データ未検証 | `web/` |
 | 5 | Web Push（実機検証まで） | 🚧 コードのみ・実機未検証 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
@@ -51,12 +51,14 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
 
 ### 2. Garmin コーチのプラン取得 PoC
 
-- [ ] `get_training_plans()` / `get_scheduled_workouts()` /
+- [x] `get_training_plans()` / `get_scheduled_workouts()` /
       `get_adaptive_training_plan_by_id()` の生 JSON をダンプした
-- [ ] どの API がコーチのプランを返すか特定した
-- [ ] 「ポイント練習 / イージー / 休養」をどのフィールドで判定するか決めた
+- [x] どの API がコーチのプランを返すか特定した
+      （`get_adaptive_training_plan_by_id()` の `taskList`）
+- [x] 「ポイント練習 / イージー / 休養」をどのフィールドで判定するか決めた
+      （`trainingEffectLabel` と `restDay`）
 - [ ] `get_activity_types()` でボルダリング・フィギュアの `type_key` を確認した
-- [ ] 結果を [06-poc-notes.md](06-poc-notes.md) に記録した
+- [x] PoC-1 の結果を [06-poc-notes.md](06-poc-notes.md) に記録した
 
 ### 3. 取り込みバッチ → Supabase
 
