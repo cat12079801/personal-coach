@@ -26,12 +26,28 @@ npm run dev
 
 | 項目 | 値 |
 |---|---|
-| Build command | `npm ci && npm run build` |
-| Build output directory | `web/build` |
 | Root directory | `web` |
+| Build command | `npm ci && npm run build` |
+| Build output directory | `build` |
+
+`build` は Root directory からの相対。もし "output directory not found" で失敗したら
+`web/build` に変えて試す。
+
+Node のバージョンは [.nvmrc](.nvmrc) で固定している。
 
 ビルド環境変数に `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_VAPID_PUBLIC_KEY`
 を設定する。
+
+### SPA の書き戻し
+
+[static/_redirects](static/_redirects) で `/* /index.html 200` を指定している。
+**これが無いと `/activities` を直接開いた場合やリロード時に 404 になる。**
+クライアントサイドルーティングなので、実在するのは `/` だけである。
+
+### デプロイ後にやること
+
+Supabase の `Authentication > URL Configuration > Redirect URLs` に本番 URL を追加する。
+追加しないと Google ログインから戻ってこられない。
 
 publishable key（`sb_publishable_...`）はフロントに埋め込まれる公開値であり、秘密ではない。
 データを守っているのは Supabase 側の RLS（`is_owner()`）だけである。
