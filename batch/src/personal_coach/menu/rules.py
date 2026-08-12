@@ -25,9 +25,12 @@ R3. training_readiness が低い日は**セット数を減らす**（段階は�
     ただし `validSleep: false` の日は score が当てにならないので下げない。
     **ランには手を入れない**（R1）。
 
-R4. 週あたりの実施回数の下限を確保する。既定は週 2 回・中 1 日以上（`min_gap_days=2`）。
-    優先度の高い日だけでは回数が足りない場合、ポイント練習日にも置く。
-    週は月曜始まりで数える。
+R4. 週あたりの実施回数の下限を確保する。週は月曜始まりで数える。
+    **回数が R2 の優先度より優先される。** 優先度の高い日だけでは足りない場合、
+    ポイント練習日にも置くし、休養日を使わない組み合わせも選ぶ。
+
+    週 3 回・中 1 日だと、休養日を先に取ると間隔の制約で 2 回しか置けなくなる週がある。
+    そのため置く日は総当たりで決める（候補は最大 7 日）。
 
 ## カレンダーの予定について
 
@@ -47,6 +50,7 @@ R4. 週あたりの実施回数の下限を確保する。既定は週 2 回・�
 from __future__ import annotations
 
 import datetime as dt
+import itertools
 import logging
 from dataclasses import dataclass, field
 from typing import Any
@@ -172,8 +176,13 @@ def _day_priority(tasks_by_date: dict[dt.date, list[PlanTask]], day: dt.date) ->
 def _plan_days(program: Program, inp: MenuInput) -> list[dt.date]:
     """その週の残りから、この種目を置く日を選ぶ。
 
-    優先度（休養日 > 通常日 > ポイント練習日）の順に、間隔の制約を守りながら
-    必要回数ぶんだけ選ぶ。当日より前は既に確定しているので触らない。
+    層ごとの貪欲法（休養日を先に全部取る）だと、間隔の制約で後続が潰れて
+    回数の下限に届かなくなることがある。たとえば週 3 回・中 1 日で
+    水・木(休養)・金・土・日が残っている場合、木を先に取ると木土の 2 回しか置けない。
+    水金日なら 3 回置ける。
+
+    そこで**回数を最優先**し、同数なら優先度の高い日を多く含む組を選ぶ。
+    候補は最大 7 日なので総当たりで足りる。
     """
     done = _count_this_week(program.id, inp.date, inp.recent_menus)
     remaining = program.weekly_target - done
@@ -187,24 +196,27 @@ def _plan_days(program: Program, inp: MenuInput) -> list[dt.date]:
     # 当日からその週の日曜まで
     sunday = inp.date + dt.timedelta(days=6 - inp.date.weekday())
     candidates = [inp.date + dt.timedelta(days=i) for i in range((sunday - inp.date).days + 1)]
-
     last = _last_done(program.id, inp.recent_menus)
-    chosen: list[dt.date] = []
-    # 優先度の高い層から順に埋める。同じ層の中では日付の早い順
-    for priority in (_PRIORITY_REST, _PRIORITY_NORMAL, _PRIORITY_HARD):
-        for day in candidates:
-            if len(chosen) >= remaining:
-                break
-            if day in chosen or _day_priority(tasks_by_date, day) != priority:
-                continue
-            # 既に置いた日（前週ぶんを含む）との間隔を確認する
-            placed = [d for d in [last, *chosen] if d is not None]
-            if any(abs((day - d).days) < program.min_gap_days for d in placed):
-                continue
-            chosen.append(day)
-        if len(chosen) >= remaining:
-            break
-    return sorted(chosen)
+
+    def feasible(combo: tuple[dt.date, ...]) -> bool:
+        placed = [d for d in [last, *combo] if d is not None]
+        return all(
+            abs((a - b).days) >= program.min_gap_days
+            for i, a in enumerate(placed)
+            for b in placed[i + 1 :]
+        )
+
+    # 置ける最大数から順に探し、見つかった時点でその数に確定する
+    for size in range(min(remaining, len(candidates)), 0, -1):
+        best = min(
+            (combo for combo in itertools.combinations(candidates, size) if feasible(combo)),
+            # 優先度の合計が小さい（休養日を多く含む）組を選び、同点なら早い日から
+            key=lambda combo: (sum(_day_priority(tasks_by_date, d) for d in combo), combo),
+            default=None,
+        )
+        if best is not None:
+            return sorted(best)
+    return []
 
 
 def _should_place(program: Program, inp: MenuInput) -> tuple[bool, str]:
