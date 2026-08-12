@@ -36,17 +36,24 @@ function urlBase64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 async function registration(): Promise<ServiceWorkerRegistration> {
-	return navigator.serviceWorker.register('/sw.js', { scope: '/' });
+	await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+	// register() は installing 状態の registration を返すことがある。
+	// active になる前に pushManager.subscribe() を呼ぶと失敗するので、ready を待つ。
+	return navigator.serviceWorker.ready;
 }
 
 async function persist(sub: PushSubscription): Promise<void> {
 	const json = sub.toJSON();
-	await db()
+	const p256dh = json.keys?.p256dh;
+	const auth = json.keys?.auth;
+	if (!p256dh || !auth) {
+		throw new Error('購読キーを取り出せなかった（p256dh / auth が空）');
+	}
+	const { error } = await db()
 		.from('push_subscriptions')
-		.upsert(
-			{ endpoint: sub.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth },
-			{ onConflict: 'endpoint' }
-		);
+		.upsert({ endpoint: sub.endpoint, p256dh, auth }, { onConflict: 'endpoint' });
+	// 保存できていなければ通知は届かない。黙って握りつぶさない
+	if (error) throw new Error(`購読の保存に失敗した: ${error.message}`);
 }
 
 /**
@@ -83,6 +90,40 @@ export async function syncSubscription(): Promise<void> {
 		});
 	}
 	await persist(sub);
+}
+
+/** 設定画面に出す診断情報。実機で詰まったときの切り分け用。 */
+export async function diagnose(): Promise<Record<string, string>> {
+	const out: Record<string, string> = {
+		standalone: String(isStandalone()),
+		permission: typeof Notification === 'undefined' ? 'なし' : Notification.permission,
+		vapid: vapidPublicKey ? `設定済み(${vapidPublicKey.length}文字)` : '未設定'
+	};
+	if (!pushSupported) {
+		out.serviceWorker = '非対応';
+		return out;
+	}
+	try {
+		const reg = await registration();
+		out.serviceWorker = reg.active ? 'active' : '未 active';
+		const sub = await reg.pushManager.getSubscription();
+		out.subscription = sub ? new URL(sub.endpoint).host : 'なし';
+		if (sub) {
+			const json = sub.toJSON();
+			out.keys = json.keys?.p256dh && json.keys?.auth ? 'あり' : '欠落';
+		}
+	} catch (e) {
+		out.serviceWorker = `エラー: ${e instanceof Error ? e.message : String(e)}`;
+	}
+	try {
+		const { count, error } = await db()
+			.from('push_subscriptions')
+			.select('id', { count: 'exact', head: true });
+		out.dbRows = error ? `エラー: ${error.message}` : `${count} 件`;
+	} catch (e) {
+		out.dbRows = `エラー: ${e instanceof Error ? e.message : String(e)}`;
+	}
+	return out;
 }
 
 export function vapidConfigured(): boolean {
