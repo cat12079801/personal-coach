@@ -16,6 +16,7 @@ Garmin Connect のアクティビティ記録と手動登録のワークアウ�
 | [docs/07-garmin-api.md](docs/07-garmin-api.md) | 検証済み `garminconnect` API 一覧 |
 | [docs/08-open-decisions.md](docs/08-open-decisions.md) | 未決定の設計判断 |
 | [docs/09-setup-supabase.md](docs/09-setup-supabase.md) | Supabase セットアップ手順 |
+| [docs/10-strength-programs.md](docs/10-strength-programs.md) | 独自筋トレのプログラム（初期登録の記録） |
 | [docs/adr/](docs/adr/) | 却下済み選択肢を含む意思決定記録 |
 
 **DB は既存の Supabase プロジェクトに `coach` スキーマで相乗りしている。**
