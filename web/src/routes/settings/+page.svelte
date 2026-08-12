@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { session } from '$lib/session.svelte';
 	import { diagnose, enablePush, isStandalone, pushSupported, vapidConfigured } from '$lib/push';
+	import { buildInfo, formatBuiltAt } from '$lib/build-info';
 
 	let permission = $state(
 		typeof Notification !== 'undefined' ? Notification.permission : 'default'
@@ -90,5 +91,22 @@
 	<div class="card">
 		<p class="muted">{session.session?.user.email}</p>
 		<button onclick={() => session.signOut()}>ログアウト</button>
+	</div>
+
+	<h2>ビルド</h2>
+	<div class="card">
+		<!-- 実機の PWA はキャッシュが残る。表示が古いときここで見ているデプロイを確かめる -->
+		<div class="row">
+			<span class="muted">コミット</span>
+			<code>{buildInfo.commit}</code>
+		</div>
+		<div class="row">
+			<span class="muted">ビルド時刻</span>
+			<span>{formatBuiltAt()}</span>
+		</div>
+		<div class="row">
+			<span class="muted">ブランチ</span>
+			<code>{buildInfo.branch}</code>
+		</div>
 	</div>
 </div>

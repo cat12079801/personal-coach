@@ -24,6 +24,24 @@ npm run dev
 
 本番: <https://personal-coach-6z2.pages.dev>
 
+## ビルド情報の確認
+
+実機の PWA はホーム画面から起動するとキャッシュが残り、**どのデプロイを見ているのか
+判別できない**。そのためコミットハッシュとビルド時刻を画面に埋め込んでいる。
+
+| 見る場所 | 内容 |
+|---|---|
+| `/settings` の「ビルド」 | コミット・ビルド時刻（JST 秒まで）・ブランチ |
+| 未ログイン画面の最下部 | `<短縮ハッシュ> / <ビルド時刻>` の 1 行 |
+
+値は [vite.config.ts](vite.config.ts) の `define` でビルド時に埋め込み、
+[build-info.ts](src/lib/build-info.ts) から参照する。ハッシュは Cloudflare Pages が渡す
+`CF_PAGES_COMMIT_SHA`（ローカルは `git rev-parse`）、ブランチは `CF_PAGES_BRANCH`
+（ローカルは `local`）である。`npm run dev` ではビルド時刻が dev サーバの起動時刻になる。
+
+表示が更新されないときは、ホーム画面のアイコンから起動したまま**アプリを一度終了して
+再起動する**。それでも古い場合は Cloudflare のデプロイ自体が終わっていない。
+
 ## Cloudflare Pages の設定
 
 | 項目 | 値 |
@@ -71,7 +89,7 @@ publishable key（`sb_publishable_...`）はフロントに埋め込まれる公
 | `/unlinked` | 未紐付けアクティビティ。ここから手動ログを追記する |
 | `/logs` | 手動登録（筋トレ / スケート）+ 最近の記録 |
 | `/notifications` | 通知履歴。未読カウンタはタブに出る |
-| `/settings` | 通知の有効化・筋トレプログラムへの導線・ログアウト |
+| `/settings` | 通知の有効化・筋トレプログラムへの導線・ログアウト・ビルド情報 |
 | `/programs` | 独自筋トレの種目と段階を管理する。**ここが空だとメニューに筋トレが出ない** |
 
 未ログイン時は [Login.svelte](src/lib/Login.svelte) を出す。ログインは **Google OAuth のみ**
