@@ -4,13 +4,42 @@
 
 | # | マイルストーン | 状態 | 成果物 |
 |---|---|---|---|
-| 1 | Garmin 認証 + トークンの Supabase 往復 | ✅ GHA でも成功 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
-| 2 | Garmin コーチのプラン取得 PoC | ✅ 完了 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
-| 3 | 取り込みバッチ → Supabase | ✅ 実データで動作確認済 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
-| 4 | PWA | 🚧 デプロイ済・実データ目視未 | `web/` |
-| 5 | Web Push（実機検証まで） | ✅ iOS 実機で確認済 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
-| 6 | メニュー生成ロジック | 🚧 実データで生成済・UI 未 | `menu/rules.py`, `menu/build.py`, `garmin/plan.py` |
-| 7 | keepalive と失敗通知 | ✅ ワークフローに組込済 | `.github/workflows/` |
+| 1 | Garmin 認証 + トークンの Supabase 往復 | ✅ | `garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
+| 2 | Garmin コーチのプラン取得 PoC | ✅ | `scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
+| 3 | 取り込みバッチ → Supabase | ✅ | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
+| 4 | PWA | ✅ | `web/` → https://personal-coach-6z2.pages.dev |
+| 5 | Web Push | ✅ | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
+| 6 | メニュー生成ロジック | ✅ | `menu/rules.py`, `menu/build.py`, `garmin/plan.py` |
+| 7 | keepalive と失敗通知 | ✅ | `.github/workflows/` |
+
+**全マイルストーン完了（2026-08-12）。** 03:00 JST の取り込み・生成と 08:00 JST の通知が
+GitHub Actions で自動実行される状態にある。
+
+## 現在の運用状態
+
+| | |
+|---|---|
+| 本番 PWA | https://personal-coach-6z2.pages.dev |
+| DB | 既存 Supabase プロジェクトの `coach` スキーマに相乗り（[ADR-0006](adr/0006-share-existing-supabase-project.md)） |
+| 取り込み済み | activities 50 件（直近ぶんのみ。全履歴は未） |
+| 筋トレプログラム | 3 種目・週 3 回で登録済み（[10-strength-programs.md](10-strength-programs.md)） |
+| GitHub Secrets | Supabase 2 つ + VAPID 3 つ。カレンダーと Discord は未登録 |
+
+## 残っている作業
+
+優先度順ではなく、どれも任意。
+
+- **`GOOGLE_CALENDAR_ICS_URL` の登録** — 入れると当日の予定がメニューに載る。
+  未設定でも「予定なし」として動く
+- **`DISCORD_WEBHOOK_URL` の登録** — バッチ失敗時の通知。未設定だと失敗に気付けない
+- **全履歴のバックフィル** — `BACKFILL_PAGES=5` などで遡る。現在は直近 50 件
+- **[OD-1](08-open-decisions.md) の決着** — 「メニュー再生成」ボタンが積んだ依頼を拾う側が未実装。
+  ボタンは押せるが何も起きない
+- **筋トレの動きの図をアプリに載せる** — 現在は
+  [確認用ページ](https://claude.ai/code/artifact/6f7af65b-f244-4b79-b7c9-c8dbf21ebc5b)にしか無く、
+  アプリはテキストのみ。段階ごとの SVG を `stages[].figure` に持たせるなどの案がある
+- **実際に失敗通知が飛ぶことの確認**
+- **PWA の実データ目視確認** — データは入っているが全画面の目視は未
 
 ## 順序の根拠
 

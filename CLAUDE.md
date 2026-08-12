@@ -24,6 +24,39 @@
 - `workflow_dispatch` の入力を無検証でシェルに渡さない
 - PoC の出力（`batch/.poc-out/`）は個人データなのでコミットしない
 
+## 現在地（2026-08-12）
+
+**全マイルストーン完了。** 毎日 03:00 JST に取り込みとメニュー生成、08:00 JST に通知が
+GitHub Actions で自動実行される。残作業と運用状態は [docs/05-roadmap.md](docs/05-roadmap.md)。
+
+| | |
+|---|---|
+| 本番 PWA | https://personal-coach-6z2.pages.dev |
+| DB | 既存 Supabase プロジェクトの `coach` スキーマに相乗り |
+| ローカル実行 | `cd batch && uv run pc-ingest` / `uv run pc-notify` |
+| 設定 | リポジトリ直下の `.env`（`config.py` が読む。gitignore 済み） |
+
+## 一度踏んだ罠
+
+同じところを二度踏まないための一覧。詳細は各ドキュメントにある。
+
+- **`garminconnect` のトークン書き出しは `Client.dump()`。** `garth.dump()` ではない。
+  書き戻せないとトークンが失効し、再取得には MFA 対話と IP レート制限との戦いが要る
+- **supabase-js は例外を投げず `{ error }` を返す。** 握りつぶすと「UI は成功、DB は空」になる。
+  Web Push の購読でこれを踏んだ
+- **Service Worker は `navigator.serviceWorker.ready` を待つ。**
+  `register()` は installing 状態の registration を返すことがあり、購読が失敗する
+- **差分同期は過去に遡れない。** 既知 ID で打ち切るため。バックフィルは `BACKFILL_PAGES` を使う
+- **RPE は `get_activities()` に入らない。** `get_activity()` の
+  `summaryDTO.directWorkoutRpe`（0-100 スケール）にある
+- **Supabase は RLS だけでは足りない。** 明示的な GRANT が無いと PostgREST が
+  permission denied を返す
+- **Cloudflare Pages のビルドコマンドに `&&` を書かない。** 解釈されず引数として渡る。
+  依存インストールは Cloudflare 側が自動で行うので `npm run build` だけでよい。
+  Root directory（`web`）の指定と `static/_redirects` も必須
+- **`astral-sh/setup-uv` に浮動 major タグは無い。** `@v9.0.0` のようにフル固定する
+- **SVG のプレゼンテーション属性で `var()` は解決されない。** 色は CSS 側で指定する
+
 ## 実装順序
 
 [docs/05-roadmap.md](docs/05-roadmap.md) の順で進める。順序には理由がある。
