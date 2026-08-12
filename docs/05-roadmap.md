@@ -7,7 +7,7 @@
 | 1 | Garmin 認証 + トークンの Supabase 往復 | 🚧 ローカルは動作確認済 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
 | 2 | Garmin コーチのプラン取得 PoC | ✅ 完了 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
 | 3 | 取り込みバッチ → Supabase | ✅ 実データで動作確認済 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
-| 4 | PWA | 🚧 実装済・実データ未検証 | `web/` |
+| 4 | PWA | 🚧 実装済・デプロイ未 | `web/` |
 | 5 | Web Push（実機検証まで） | 🚧 コードのみ・実機未検証 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
 | 6 | メニュー生成ロジック | 🚧 実データで生成済・UI 未 | `menu/rules.py`, `menu/build.py`, `garmin/plan.py` |
 | 7 | keepalive と失敗通知 | ✅ ワークフローに組込済 | `.github/workflows/` |
@@ -79,7 +79,7 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
 - [x] 未紐付けアクティビティ一覧がある
 - [x] 手動ログ（筋トレ / スケート）を登録できる
 - [x] 「メニュー再生成」ボタンがある（依頼を積むところまで。OD-1 参照）
-- [ ] 実データで表示を確認した（Supabase の構築待ち）
+- [ ] 実データで表示を確認した（データは入っている。目視確認が未）
 - [ ] Cloudflare Pages にデプロイできている
 
 ### 5. Web Push
