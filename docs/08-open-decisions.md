@@ -76,14 +76,22 @@ standalone 表示の PWA から OAuth に飛ぶと、戻りが PWA ではなく 
 
 ## OD-4: ボルダリングの RPE をどこで入れるか
 
-**状態:** ⬜ 未決定
+**状態:** ✅ 決定（Garmin 側の RPE を使う）
 
-ボルダリングを Garmin 記録に切り替えたため、手動ログが無くなり **RPE の入力先が消えた**。
-一方でボルダリングの心拍は信用できないので、負荷を測るには主観強度が要る。
+PoC-2 で確認した。Garmin のアクティビティ詳細に主観強度が入っている。
 
-- Garmin のアクティビティには主観的な運動強度（Feel / Effort）を入れる欄がある。
-  `activities.raw` に入ってくるかを PoC-2 で確認する
-- 入っていればそれを使う。入っていなければ、負荷指標からボルダリングを外すだけにする
+```jsonc
+// get_activity(activity_id) の戻り値
+{ "summaryDTO": { "directWorkoutFeel": 50, "directWorkoutRpe": 40 } }
+```
+
+0-100 スケール。`directWorkoutRpe: 40` = RPE 4/10。
+
+**ただし `get_activities()`（一覧）には入っていない。**
+クライミング系とスケートは詳細も取りに行く必要がある。
+ラン splits の 2 段ジョブと同じ枠組みで実装する。
+
+アプリ側で RPE を入力する画面は作らない。Garmin Connect で入れる。
 
 ---
 

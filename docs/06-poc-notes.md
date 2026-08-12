@@ -172,26 +172,58 @@ mostRecentVO2Max.generic.vo2MaxValue = 58.0
 
 ---
 
-## PoC-2: ボルダリング / フィギュアスケートの `type_key`
+## PoC-2: 種目の `type_key` と主観強度
 
-**状態:** ⬜ 未実施
+**状態:** ✅ 完了（2026-08-12 実施）
 **スクリプト:** `batch/scripts/poc_dump_activity_types.py`
 
-`type_key` は機種と設定に依存する。実機で確認すること。
+### `type_key`
 
-### 結果
+直近 30 件の実アクティビティで確認した。
 
-| 種目 | `type_key` | 備考 |
-|---|---|---|
-| ランニング | _（未記入）_ | |
-| フィギュアスケート | _（未記入）_ | |
-| ボルダリング | _（未記入）_ | |
+| 種目 | `type_key` | typeId | 確認 |
+|---|---|---|---|
+| ランニング | `running` | 1 | 実データ 22 件 |
+| フィギュアスケート | `skating_ws` | 168 | 実データ 5 件 |
+| 筋トレ | `strength_training` | 13 | 実データ 3 件 |
+| ボルダリング | `bouldering` | 174 | **未確定**（下記） |
 
-### あわせて確認すること（OD-4）
+**ボルダリングはまだ記録が無いので確定していない。** 型一覧には近いものが 4 つある。
 
-ボルダリングを Garmin 記録に切り替えたため RPE の入力先が消えた。
-Garmin のアクティビティに主観的強度（Feel / Effort）が入るかを、
-`get_activities()` の生 JSON で確認する。
+```
+139 rock_climbing     150 floor_climbing
+173 indoor_climbing   174 bouldering
+```
+
+どれが書かれるかはウォッチで選ぶアクティビティプロファイルによる。
+**1 回記録したら `activities.sport` を確認して確定させること。**
+正規化側は 4 つすべてを「クライミング系」として扱えるようにしておく。
+
+### 主観強度（OD-4 の答え）
+
+**`get_activities()`（一覧）には主観系のフィールドが一切無い。**
+110 個のキーを見たが `feel` / `rpe` / `effort` は無し。
+
+**`get_activity(activity_id)`（詳細）には入っている。**
+
+```jsonc
+{ "summaryDTO": { "directWorkoutFeel": 50, "directWorkoutRpe": 40 } }
+```
+
+いずれも 0-100 のスケール。`directWorkoutRpe: 40` は RPE 4/10 に相当する。
+
+→ **RPE が要る種目（クライミング系・スケート）は詳細も取りに行く。**
+ラン splits の 2 段ジョブと同じ枠組みで実装できる。
+
+### 種目ごとの使えるフィールド
+
+```
+running           : distance, averageHR, maxHR, activityTrainingLoad,
+                    aerobicTrainingEffect, anaerobicTrainingEffect,
+                    trainingEffectLabel, elevationGain, averageSpeed, lapCount, hasSplits
+skating_ws        : distance は 0。averageHR は出るが低めに出る（滑走と休憩の繰り返し）
+strength_training : distance は 0。totalSets / totalReps が入る
+```
 
 ---
 
