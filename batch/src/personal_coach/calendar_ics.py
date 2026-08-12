@@ -27,7 +27,7 @@ from typing import Any
 import requests
 from icalendar import Calendar
 
-from .config import calendar_ics_url
+from .config import calendar_configured, calendar_ics_url
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,11 @@ def fetch_events_safe(target: dt.date) -> list[dict[str, Any]]:
     """取得に失敗しても空リストを返す。
 
     カレンダーは表示用でしかないので、落ちても日次バッチ全体を止めない。
+    未設定は異常ではないので、警告にとどめてスタックトレースは出さない。
     """
+    if not calendar_configured():
+        logger.info("GOOGLE_CALENDAR_ICS_URL が未設定。予定なしとして続行する")
+        return []
     try:
         return [e.to_dict() for e in fetch_events(target)]
     except Exception:

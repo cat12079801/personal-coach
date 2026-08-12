@@ -87,6 +87,11 @@ class PushConfig:
         )
 
 
+def calendar_configured() -> bool:
+    """カレンダーは任意設定。未設定でもバッチは動く（予定なしとして扱う）。"""
+    return bool(_optional("GOOGLE_CALENDAR_ICS_URL"))
+
+
 def calendar_ics_url() -> str:
     """Google カレンダーの非公開 iCal URL。実質的な認証情報なのでログに出さない。"""
     return _require("GOOGLE_CALENDAR_ICS_URL")

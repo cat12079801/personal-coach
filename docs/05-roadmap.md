@@ -6,10 +6,10 @@
 |---|---|---|---|
 | 1 | Garmin 認証 + トークンの Supabase 往復 | 🚧 ローカルは動作確認済 | `batch/src/personal_coach/garmin/auth.py`, `scripts/bootstrap_garmin_token.py` |
 | 2 | Garmin コーチのプラン取得 PoC | ✅ 完了 | `batch/scripts/poc_*.py` → [06-poc-notes.md](06-poc-notes.md) |
-| 3 | 取り込みバッチ → Supabase | 🚧 実装済・実行未 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
+| 3 | 取り込みバッチ → Supabase | ✅ 実データで動作確認済 | `garmin/sync.py`, `garmin/sports.py`, `ingest.py` |
 | 4 | PWA | 🚧 実装済・実データ未検証 | `web/` |
 | 5 | Web Push（実機検証まで） | 🚧 コードのみ・実機未検証 | `push/sender.py`, `web/src/lib/push.ts`, `web/static/sw.js` |
-| 6 | メニュー生成ロジック | 🚧 実装済・実データ未実行 | `menu/rules.py`, `menu/build.py`, `garmin/plan.py` |
+| 6 | メニュー生成ロジック | 🚧 実データで生成済・UI 未 | `menu/rules.py`, `menu/build.py`, `garmin/plan.py` |
 | 7 | keepalive と失敗通知 | ✅ ワークフローに組込済 | `.github/workflows/` |
 
 ## 順序の根拠
@@ -69,8 +69,9 @@ Garmin コーチのプランがどの API から、どういう形で取れる�
 - [x] クライミング系・スケートの詳細（RPE / Feel）を追う 3 段目ジョブ
 - [x] 429 を握って指数バックオフする
 - [x] 初回バックフィルをページ数で区切れる（`BACKFILL_PAGES`）
-- [ ] **実データで 1 回流す**（migration 0005 の適用が前提）
-- [ ] 初回バックフィルが完走する
+- [x] **実データで流した**（activities 50 / running_details 33 / splits 33 / 詳細 20）
+- [x] RPE / Feel が入ることを確認した（rpe 4〜9、feel 50/75/100）
+- [ ] 初回バックフィルで全履歴を取り込む（現在は直近 50 件のみ）
 
 ### 4. PWA
 
@@ -103,8 +104,8 @@ Cloudflare Pages へのデプロイ後すぐにここを潰す。
 - [x] `daily_menus.source` に生成根拠を残している（適用ルール・種目ごとの判定理由）
 - [x] 当日のカレンダー予定をメニューに載せる（表示用。ルールには使わない）
 - [x] PoC の実データ 1 週間ぶんでドライランして配置を目視確認した
+- [x] 実データで生成した（2026-08-12: ベース 61 分 + ラン前のアクティベー）
 - [ ] 独自筋トレの段階を管理する UI（`strength_programs` の CRUD）
-- [ ] 実データで 1 回生成する（migration 0006 の適用が前提）
 - [ ] 「メニュー再生成」ボタンから手動リカバリできる（OD-1 の決着が必要）
 
 ### 7. keepalive と失敗通知
