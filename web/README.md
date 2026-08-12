@@ -22,6 +22,8 @@ npm run dev
 | `npm run build` | `build/` に静的出力 |
 | `npm run check` | 型チェック（svelte-check） |
 
+本番: <https://personal-coach-6z2.pages.dev>
+
 ## Cloudflare Pages の設定
 
 | 項目 | 値 |
