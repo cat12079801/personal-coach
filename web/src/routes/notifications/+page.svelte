@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { db } from '$lib/supabase';
+	import { designMode } from '$lib/design';
+	import { designNotifications } from '$lib/fixtures';
 	import { formatDateTime } from '$lib/format';
 	import type { NotificationRow } from '$lib/types';
 
@@ -15,6 +17,12 @@
 	async function load() {
 		loading = true;
 		error = '';
+		if (designMode) {
+			// フィクスチャは共有の配列なので、書き換えないようコピーを持つ
+			rows = designNotifications.map((row) => ({ ...row }));
+			loading = false;
+			return;
+		}
 		try {
 			const { data, error: e } = await db()
 				.from('notifications')
@@ -32,6 +40,10 @@
 
 	async function markAllRead() {
 		const now = new Date().toISOString();
+		if (designMode) {
+			rows = rows.map((row) => ({ ...row, read_at: row.read_at ?? now }));
+			return;
+		}
 		const { error: e } = await db().from('notifications').update({ read_at: now }).is('read_at', null);
 		if (e) error = e.message;
 		else await load();

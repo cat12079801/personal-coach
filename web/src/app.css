@@ -179,3 +179,16 @@ label > span {
 	color: var(--danger);
 	font-size: 0.875rem;
 }
+
+/* デザイン検証モードの表示（web/src/lib/design.ts）。本番では描かれない */
+.design-banner {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding: 0.35rem 1rem;
+	padding-top: max(0.35rem, env(safe-area-inset-top));
+	background: var(--danger);
+	color: #fff;
+	font-size: 0.7rem;
+	text-align: center;
+}

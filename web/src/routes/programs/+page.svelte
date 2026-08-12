@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { db } from '$lib/supabase';
+	import { designMode } from '$lib/design';
+	import { designPrograms } from '$lib/fixtures';
 	import ProgramCard from '$lib/ProgramCard.svelte';
 	import type { StrengthProgram } from '$lib/types';
 
@@ -7,9 +9,23 @@
 	let loading = $state(true);
 	let error = $state('');
 
+	/**
+	 * デザイン検証モードの編集はメモリ上だけで完結させる。
+	 * load() で読み直すと編集が消えるので、フィクスチャは初回だけ複製して持つ。
+	 */
+	let designLoaded = false;
+
 	async function load() {
 		loading = true;
 		error = '';
+		if (designMode) {
+			if (!designLoaded) {
+				programs = designPrograms.map((p) => ({ ...p, stages: p.stages.map((s) => ({ ...s })) }));
+				designLoaded = true;
+			}
+			loading = false;
+			return;
+		}
 		try {
 			const { data, error: e } = await db()
 				.from('strength_programs')
@@ -27,6 +43,10 @@
 
 	async function save(program: StrengthProgram) {
 		error = '';
+		if (designMode) {
+			programs = programs.map((p) => (p.id === program.id ? { ...program } : p));
+			return;
+		}
 		const { error: e } = await db().from('strength_programs').update({
 			name: program.name,
 			stage: program.stage,
@@ -42,6 +62,10 @@
 
 	async function remove(id: string) {
 		error = '';
+		if (designMode) {
+			programs = programs.filter((p) => p.id !== id);
+			return;
+		}
 		const { error: e } = await db().from('strength_programs').delete().eq('id', id);
 		if (e) error = e.message;
 		await load();
@@ -49,6 +73,22 @@
 
 	async function add() {
 		error = '';
+		if (designMode) {
+			programs = [
+				...programs,
+				{
+					id: `design-new-${programs.length}`,
+					name: '新しい種目',
+					stage: 1,
+					stages: [],
+					weekly_target: 2,
+					min_gap_days: 2,
+					sort_order: programs.length,
+					active: true
+				}
+			];
+			return;
+		}
 		const { error: e } = await db()
 			.from('strength_programs')
 			.insert({ name: '新しい種目', sort_order: programs.length });

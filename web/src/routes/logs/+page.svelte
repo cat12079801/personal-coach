@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { db } from '$lib/supabase';
+	import { designMode } from '$lib/design';
+	import { designSkatingLogs, designStrengthLogs } from '$lib/fixtures';
 	import { formatDateTime, localInputToIso, nowForInput } from '$lib/format';
 	import { LOG_TABLES, type LogKind, type ManualLog } from '$lib/types';
 
@@ -44,6 +46,18 @@
 	}
 
 	async function loadRecent() {
+		if (designMode) {
+			// スプレッドは index signature を落とすので明示的に付け直す
+			recent = [
+				...designStrengthLogs.map((row) => ({ ...row, kind: 'strength' }) as RecentLog),
+				...designSkatingLogs.map((row) => ({ ...row, kind: 'skating' }) as RecentLog)
+			].sort(
+				(a, b) =>
+					new Date(b[LOG_TABLES[b.kind].at] as string).getTime() -
+					new Date(a[LOG_TABLES[a.kind].at] as string).getTime()
+			);
+			return;
+		}
 		try {
 			const results = await Promise.all(
 				(Object.keys(LOG_TABLES) as LogKind[]).map(async (k) => {
@@ -84,6 +98,17 @@
 			rpe,
 			note: note || null
 		};
+
+		if (designMode) {
+			// 保存はせず、一覧の先頭に足して見た目だけ確認できるようにする
+			recent = [{ ...(payload as unknown as ManualLog), id: `design-new-${recent.length}`, kind }, ...recent];
+			saved = true;
+			items = [{}];
+			note = '';
+			rpe = null;
+			saving = false;
+			return;
+		}
 
 		const { error: e } = await db().from(spec.table).insert(payload);
 		if (e) {

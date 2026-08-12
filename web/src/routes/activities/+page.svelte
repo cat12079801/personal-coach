@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { db } from '$lib/supabase';
+	import { designMode } from '$lib/design';
+	import { designActivities } from '$lib/fixtures';
 	import { formatDateTime, formatDuration, formatDistance, formatPace } from '$lib/format';
 	import type { Activity, RunningDetail } from '$lib/types';
 
@@ -12,6 +14,11 @@
 	async function load() {
 		loading = true;
 		error = '';
+		if (designMode) {
+			rows = designActivities;
+			loading = false;
+			return;
+		}
 		try {
 			const { data, error: e } = await db()
 				.from('activities')

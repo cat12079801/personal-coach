@@ -1,5 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { db, isConfigured } from './supabase';
+import { designMode } from './design';
+import { designSession } from './fixtures';
 
 /**
  * ログインは Google OAuth のみ。
@@ -17,6 +19,12 @@ class SessionStore {
 	loading = $state(true);
 
 	async init() {
+		// デザイン検証モードでは Supabase を触らない（design.ts）
+		if (designMode) {
+			this.session = designSession;
+			this.loading = false;
+			return;
+		}
 		if (!isConfigured) {
 			this.loading = false;
 			return;
@@ -40,6 +48,10 @@ class SessionStore {
 	}
 
 	async signOut() {
+		if (designMode) {
+			this.session = null;
+			return;
+		}
 		await db().auth.signOut();
 	}
 }

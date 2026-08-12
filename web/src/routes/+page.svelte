@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { db } from '$lib/supabase';
+	import { designMode } from '$lib/design';
+	import { designCompletions, designMenu } from '$lib/fixtures';
 	import { todayJst, formatDateTime, formatDuration, formatEventTime } from '$lib/format';
 	import type {
 		DailyMenu,
@@ -25,6 +27,11 @@
 	async function load() {
 		loading = true;
 		loadError = '';
+		if (designMode) {
+			menu = designMenu;
+			loading = false;
+			return;
+		}
 		try {
 			const { data, error: e } = await db()
 				.from('daily_menus')
@@ -74,6 +81,12 @@
 	 * program_id が入っている行だけがメニュー由来（/logs の自由入力は null）。
 	 */
 	async function loadDone() {
+		if (designMode) {
+			done = Object.fromEntries(
+				designCompletions.map((row) => [row.program_id, { logId: row.id, entry: row.exercises[0] }])
+			);
+			return;
+		}
 		// supabase-js は例外を投げず { error } を返す。握りつぶすと「UI は成功、DB は空」になる
 		const { data, error: e } = await db()
 			.from('strength_logs')
@@ -111,6 +124,16 @@
 		error = '';
 		const record = done[item.program_id];
 
+		// デザイン検証モードでは DB に書かず、見た目だけ切り替える
+		if (designMode) {
+			const next = { ...done };
+			if (record) delete next[item.program_id];
+			else next[item.program_id] = { logId: 'design-log-new', entry: initialEntry(item) };
+			done = next;
+			toggling = '';
+			return;
+		}
+
 		if (record) {
 			const { error: e } = await db().from('strength_logs').delete().eq('id', record.logId);
 			if (e) error = e.message;
@@ -137,14 +160,37 @@
 		toggling = '';
 	}
 
-	function addSet(programId: string) {
-		done[programId]?.entry.sets.push({ value: null });
+	/**
+	 * 実績の書き換えは**必ず新しいオブジェクトを作って `done` に代入する**。
+	 *
+	 * `{#each ... as set}` のアイテムに `bind:value` する書き方では書き戻りが起きず、
+	 * 入力しても値が反映されなかった（画面で確認済み）。イミュータブルに差し替える。
+	 */
+	function updateEntry(programId: string, change: Partial<StrengthEntry>) {
+		const record = done[programId];
+		if (!record) return;
+		done = { ...done, [programId]: { ...record, entry: { ...record.entry, ...change } } };
 		savedActual = '';
 	}
 
+	function setSetValue(programId: string, index: number, raw: string) {
+		const sets = done[programId]?.entry.sets;
+		if (!sets) return;
+		updateEntry(programId, {
+			sets: sets.map((set, i) => (i === index ? { value: raw === '' ? null : Number(raw) } : set))
+		});
+	}
+
+	function addSet(programId: string) {
+		const sets = done[programId]?.entry.sets;
+		if (!sets) return;
+		updateEntry(programId, { sets: [...sets, { value: null }] });
+	}
+
 	function removeSet(programId: string) {
-		done[programId]?.entry.sets.pop();
-		savedActual = '';
+		const sets = done[programId]?.entry.sets;
+		if (!sets) return;
+		updateEntry(programId, { sets: sets.slice(0, -1) });
 	}
 
 	/** 実績の保存。メニュー側は一切書き換えない。 */
@@ -154,6 +200,11 @@
 		savingActual = programId;
 		savedActual = '';
 		error = '';
+		if (designMode) {
+			savedActual = programId;
+			savingActual = '';
+			return;
+		}
 		const { error: e } = await db()
 			.from('strength_logs')
 			// $state のプロキシをそのまま渡さない
@@ -172,6 +223,11 @@
 	async function requestRegenerate() {
 		requesting = true;
 		error = '';
+		if (designMode) {
+			requested = true;
+			requesting = false;
+			return;
+		}
 		const { error: e } = await db().from('regenerate_requests').insert({ target_date: today });
 		if (e) error = e.message;
 		else requested = true;
@@ -267,7 +323,13 @@
 
 							<label style="margin-top: 0.75rem;">
 								<span>数え方</span>
-								<select bind:value={record.entry.unit}>
+								<select
+									value={record.entry.unit}
+									onchange={(e) =>
+										updateEntry(item.program_id, {
+											unit: e.currentTarget.value as StrengthEntry['unit']
+										})}
+								>
 									<option value="reps">レップ</option>
 									<option value="seconds">秒</option>
 								</select>
@@ -276,7 +338,12 @@
 							{#each record.entry.sets as set, i (i)}
 								<label>
 									<span>{i + 1} セット目（{unitLabel(record.entry)}）</span>
-									<input type="number" min="0" bind:value={set.value} />
+									<input
+										type="number"
+										min="0"
+										value={set.value ?? ''}
+										oninput={(e) => setSetValue(item.program_id, i, e.currentTarget.value)}
+									/>
 								</label>
 							{/each}
 

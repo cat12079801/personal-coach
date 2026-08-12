@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { db } from '$lib/supabase';
+	import { designMode } from '$lib/design';
+	import { designUnlinked } from '$lib/fixtures';
 	import { formatDateTime, formatDuration } from '$lib/format';
 	import type { Activity } from '$lib/types';
 
@@ -10,6 +12,11 @@
 	async function load() {
 		loading = true;
 		error = '';
+		if (designMode) {
+			rows = designUnlinked;
+			loading = false;
+			return;
+		}
 		try {
 			// unlinked_activities は security_invoker のビュー（supabase/migrations/0001_init.sql）
 			const { data, error: e } = await db()

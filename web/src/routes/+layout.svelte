@@ -5,6 +5,8 @@
 	import { isConfigured, db } from '$lib/supabase';
 	import { session } from '$lib/session.svelte';
 	import { syncSubscription } from '$lib/push';
+	import { designMode } from '$lib/design';
+	import { designNotifications } from '$lib/fixtures';
 	import Login from '$lib/Login.svelte';
 
 	let { children } = $props();
@@ -13,7 +15,8 @@
 
 	onMount(async () => {
 		await session.init();
-		if (session.session) {
+		// デザイン検証モードでは購読も通知も DB を触らない（design.ts）
+		if (session.session && !designMode) {
 			// iOS は端末再起動などで購読を勝手に解除する。起動のたびに入れ直す
 			await syncSubscription().catch(() => {});
 		}
@@ -24,6 +27,10 @@
 		void page.url.pathname;
 		if (!session.session) {
 			unread = 0;
+			return;
+		}
+		if (designMode) {
+			unread = designNotifications.filter((n) => !n.read_at).length;
 			return;
 		}
 		db()
@@ -44,7 +51,8 @@
 	];
 </script>
 
-{#if !isConfigured}
+<!-- デザイン検証モードは Supabase の設定が無くても動く（フィクスチャしか読まないため） -->
+{#if !isConfigured && !designMode}
 	<div class="page">
 		<h1>設定が足りない</h1>
 		<div class="card">
@@ -61,6 +69,11 @@
 {:else if !session.session}
 	<Login />
 {:else}
+	{#if designMode}
+		<!-- 実データと見間違えないよう常に出す。本番ビルドではこの分岐ごと消える -->
+		<div class="design-banner">デザイン検証モード（ダミーデータ・保存しない）</div>
+	{/if}
+
 	{@render children()}
 
 	<nav class="nav">

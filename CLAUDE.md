@@ -24,6 +24,8 @@
 - ログにトークン、Supabase の service_role key、カレンダーの非公開 URL を出力しない
 - `workflow_dispatch` の入力を無検証でシェルに渡さない
 - PoC の出力（`batch/.poc-out/`）は個人データなのでコミットしない
+- `VITE_DESIGN_MODE` を本番（Cloudflare Pages）のビルド環境変数に入れない。
+  ローカルのデザイン検証専用である（`web/src/lib/design.ts`）
 
 ## 現在地（2026-08-12）
 
@@ -57,6 +59,9 @@ GitHub Actions で自動実行される。残作業と運用状態は [docs/05-r
   Root directory（`web`）の指定と `static/_redirects` も必須
 - **`astral-sh/setup-uv` に浮動 major タグは無い。** `@v9.0.0` のようにフル固定する
 - **SVG のプレゼンテーション属性で `var()` は解決されない。** 色は CSS 側で指定する
+- **Svelte 5 で `{#each}` のアイテムに `bind:value` しても書き戻らないことがある。**
+  完了記録のセット入力で踏んだ。入力しても state が変わらず、保存すると空のまま入る。
+  状態を作り直して代入する（`done = { ...done, [id]: ... }`）形に直すこと
 
 ## 実装順序
 

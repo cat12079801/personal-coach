@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { session } from '$lib/session.svelte';
+	import { designMode } from '$lib/design';
 	import { diagnose, enablePush, isStandalone, pushSupported, vapidConfigured } from '$lib/push';
 	import { buildInfo, formatBuiltAt } from '$lib/build-info';
 
@@ -9,7 +10,13 @@
 	let error = $state('');
 	let busy = $state(false);
 
-	const standalone = isStandalone();
+	/**
+	 * デザイン検証モードではホーム画面 PWA でも VAPID の設定でもないので、
+	 * そのままだと「ホーム画面に追加してから開くこと」しか見えない。
+	 * 通知セクションの本体を見るために両方を満たしているものとして扱う。
+	 */
+	const standalone = designMode || isStandalone();
+	const configured = designMode || vapidConfigured();
 
 	let saved = $state(false);
 	let info = $state<Record<string, string> | null>(null);
@@ -19,6 +26,12 @@
 		busy = true;
 		error = '';
 		saved = false;
+		if (designMode) {
+			permission = 'granted';
+			saved = true;
+			busy = false;
+			return;
+		}
 		try {
 			permission = await enablePush();
 			if (permission === 'denied') {
@@ -36,6 +49,15 @@
 
 	async function onDiagnoseClick() {
 		info = null;
+		if (designMode) {
+			info = {
+				standalone: 'true',
+				permission,
+				serviceWorker: 'activated',
+				subscription: 'design-mode（DB には保存しない）'
+			};
+			return;
+		}
 		info = await diagnose();
 	}
 </script>
@@ -47,9 +69,9 @@
 
 	<h2>通知</h2>
 	<div class="card">
-		{#if !pushSupported}
+		{#if !pushSupported && !designMode}
 			<p>この環境では Web Push を扱えない。</p>
-		{:else if !vapidConfigured()}
+		{:else if !configured}
 			<p><code>VITE_VAPID_PUBLIC_KEY</code> が未設定である。</p>
 		{:else if !standalone}
 			<p>ホーム画面に追加してから開くこと。</p>

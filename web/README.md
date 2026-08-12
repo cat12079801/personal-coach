@@ -19,8 +19,26 @@ npm run dev
 | コマンド | 内容 |
 |---|---|
 | `npm run dev` | 開発サーバ |
+| `npm run dev:design` | 開発サーバ（デザイン検証モード。下記） |
 | `npm run build` | `build/` に静的出力 |
 | `npm run check` | 型チェック（svelte-check） |
+
+### デザイン検証モード
+
+画面デザインを直すとき、Google ログインを通さずに全画面を見るためのモード。
+
+```bash
+npm run dev:design --prefix web
+```
+
+- **ログインを素通しするのではなく、DB を触らずフィクスチャを描く。**
+  UI のゲートだけ外しても `anon` にはテーブルの GRANT が無く、空の画面しか見られない
+- 表示するデータは [fixtures.ts](src/lib/fixtures.ts)。保存操作は DB に書かず画面上だけで完結する
+- 上部に赤いバナーを常時出す。実データと見間違えないため
+- 有効化の条件は `dev`（`vite build` で `false` に静的置換される）かつ `VITE_DESIGN_MODE=1` の
+  両方。**本番のビルド環境変数には絶対に入れない**（理由は [design.ts](src/lib/design.ts)）
+
+本番ビルドにバナー文字列もフィクスチャも残らないことは `grep` で確認できる。
 
 本番: <https://personal-coach-6z2.pages.dev>
 
