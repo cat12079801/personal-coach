@@ -186,18 +186,36 @@ mostRecentVO2Max.generic.vo2MaxValue = 58.0
 | ランニング | `running` | 1 | 実データ 22 件 |
 | フィギュアスケート | `skating_ws` | 168 | 実データ 5 件 |
 | 筋トレ | `strength_training` | 13 | 実データ 3 件 |
-| ボルダリング | `bouldering` | 174 | **未確定**（下記） |
+| ボルダリング | `bouldering` | 174 | 実データ 1 件（2026-08-07） |
 
-**ボルダリングはまだ記録が無いので確定していない。** 型一覧には近いものが 4 つある。
+型一覧には近いものが 4 つある。ウォッチのプロファイル次第で変わりうるので、
+正規化側は 4 つすべてを「クライミング系」として扱う（`garmin/sports.py`）。
 
 ```
 139 rock_climbing     150 floor_climbing
 173 indoor_climbing   174 bouldering
 ```
 
-どれが書かれるかはウォッチで選ぶアクティビティプロファイルによる。
-**1 回記録したら `activities.sport` を確認して確定させること。**
-正規化側は 4 つすべてを「クライミング系」として扱えるようにしておく。
+### 注意: Garmin Connect で手動追加したアクティビティは中身が空
+
+2026-08-07 のボルダリング（手動追加）を確認したところ、以下がすべて `null` だった。
+
+```
+averageHR / maxHR            → null（計測していないので当然）
+activityTrainingLoad         → null
+aerobicTrainingEffect        → null
+anaerobicTrainingEffect      → null
+trainingEffectLabel          → null
+directWorkoutRpe / Feel      → null（未入力）
+```
+
+入っていたのは `duration`（3600）と `calories`（500）と `activityName` だけ。
+
+**RPE は自動では入らない。** Garmin Connect 側でアクティビティを編集して
+「主観的運動強度」を入れないと `directWorkoutRpe` は `null` のままになる。
+負荷判定に RPE を使う設計（OD-4）は、この入力を前提にしている。
+
+正規化は `null` を許容するので取り込み自体は問題なく通る。
 
 ### 主観強度（OD-4 の答え）
 
