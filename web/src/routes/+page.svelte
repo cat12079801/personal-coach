@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { db } from '$lib/supabase';
-	import { todayJst, formatDateTime } from '$lib/format';
+	import { todayJst, formatDateTime, formatDuration, formatEventTime } from '$lib/format';
 	import type { DailyMenu } from '$lib/types';
 
 	const today = todayJst();
@@ -72,29 +72,66 @@
 			<p class="muted">生成 {formatDateTime(menu.generated_at)}</p>
 		</div>
 
-		{#if menu.menu.run}
-			<h2>ラン</h2>
+		<h2>ラン</h2>
+		{#if menu.menu.rest_day}
+			<div class="card muted">休養日</div>
+		{:else if menu.menu.run}
+			<!-- Garmin コーチのプランは改変しない。取得したまま表示する -->
 			<div class="card">
-				<!-- Garmin コーチのプランは改変しない。そのまま表示する -->
-				<pre style="margin: 0; white-space: pre-wrap; font-size: 0.85rem;">{JSON.stringify(
-						menu.menu.run,
-						null,
-						2
-					)}</pre>
+				<div class="row">
+					<strong>{menu.menu.run.name ?? 'ラン'}</strong>
+					<span class="muted">{formatDuration(menu.menu.run.duration_sec)}</span>
+				</div>
+				{#if menu.menu.run.intensity}
+					<div class="muted">{menu.menu.run.intensity}</div>
+				{/if}
 			</div>
+		{:else}
+			<div class="card muted">なし</div>
 		{/if}
 
-		{#if menu.menu.strength?.length}
-			<h2>筋トレ</h2>
-			{#each menu.menu.strength as item, i (i)}
+		{#if menu.menu.garmin_strength?.length}
+			<h2>補強（Garmin）</h2>
+			{#each menu.menu.garmin_strength as item, i (i)}
 				<div class="card">
-					<pre style="margin: 0; white-space: pre-wrap; font-size: 0.85rem;">{JSON.stringify(
-							item,
-							null,
-							2
-						)}</pre>
+					<div class="row">
+						<strong>{item.name ?? '補強'}</strong>
+						<span class="muted">{formatDuration(item.duration_sec)}</span>
+					</div>
 				</div>
 			{/each}
+		{/if}
+
+		{#if menu.menu.own_strength?.length}
+			<h2>筋トレ</h2>
+			{#each menu.menu.own_strength as item (item.program_id)}
+				<div class="card">
+					<div class="row">
+						<strong>{item.program}</strong>
+						<span class="muted">段階 {item.stage}</span>
+					</div>
+					<div>{item.label ?? ''}{#if item.sets} ・{item.sets} セット{/if}</div>
+					{#if item.note}<div class="muted">{item.note}</div>{/if}
+				</div>
+			{/each}
+		{/if}
+
+		<!--
+			カレンダーの予定。メニュー生成のルールには使われず、表示専用。
+			「今日やることを 1 画面で確認する」ためのもの。
+		-->
+		<h2>今日の予定</h2>
+		{#if menu.menu.schedule?.length}
+			{#each menu.menu.schedule as event, i (i)}
+				<div class="card">
+					<div class="row">
+						<strong>{event.summary || '(無題)'}</strong>
+						<span class="muted">{formatEventTime(event.start, event.all_day)}</span>
+					</div>
+				</div>
+			{/each}
+		{:else}
+			<div class="card muted">予定なし</div>
 		{/if}
 
 		<h2>生成根拠</h2>

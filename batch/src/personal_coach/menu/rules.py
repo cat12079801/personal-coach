@@ -29,13 +29,14 @@ R4. 週あたりの実施回数の下限を確保する。既定は週 2 回・�
     優先度の高い日だけでは回数が足りない場合、ポイント練習日にも置く。
     週は月曜始まりで数える。
 
-## スケートについて
+## カレンダーの予定について
 
 当初はスケート予定がある日に筋トレを削り、翌日の強度を下げる想定だった（旧ルール 2・4）。
 **両方とも廃止した。** スケートと筋トレは両立してよく、翌日の調整も不要という判断のため。
 「ランが休養日でスケートする日」はむしろ筋トレを置くべき日になる。
 
-結果として、この生成ロジックは Google カレンダーを参照しない。
+**カレンダーの予定は表示用としてそのまま載せる。ルールの判定には一切使わない。**
+「今日やることを 1 画面で確認する」ためのもの。
 
 ## 実施回数の数え方
 
@@ -108,6 +109,8 @@ class MenuInput:
     # 過去の daily_menus。{date: menu} 形式。実施回数と間隔の判定に使う
     recent_menus: dict[dt.date, dict[str, Any]]
     plan_meta: dict[str, Any] = field(default_factory=dict)
+    # カレンダーの予定。表示用でありルールには使わない
+    events: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -270,6 +273,8 @@ def generate(inp: MenuInput) -> MenuOutput:
         "run": _task_dict(run),
         "garmin_strength": [_task_dict(t) for t in garmin_strength],
         "own_strength": own,
+        # ルールには使わない。当日の予定を 1 画面で見るための表示用
+        "schedule": inp.events,
     }
     source = {
         "plan": inp.plan_meta,

@@ -27,11 +27,39 @@ export type DailyMenu = {
 	source: Record<string, unknown>;
 	menu: {
 		summary?: string;
-		run?: Record<string, unknown>;
-		strength?: unknown[];
+		rest_day?: boolean;
+		run?: PlanTask | null;
+		garmin_strength?: PlanTask[];
+		own_strength?: OwnStrength[];
+		/** カレンダーの予定。表示専用でメニュー生成のルールには使われない */
+		schedule?: CalendarEvent[];
 		[key: string]: unknown;
 	};
 	notified_at: string | null;
+};
+
+export type PlanTask = {
+	sport: string | null;
+	name: string | null;
+	duration_sec: number | null;
+	intensity: string | null;
+	rest_day: boolean;
+};
+
+export type OwnStrength = {
+	program_id: string;
+	program: string;
+	stage: number;
+	label: string | null;
+	sets: number | null;
+	note: string | null;
+};
+
+export type CalendarEvent = {
+	summary: string;
+	start: string;
+	end: string | null;
+	all_day: boolean;
 };
 
 export type NotificationRow = {

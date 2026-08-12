@@ -46,6 +46,16 @@ export function formatPace(secPerKm: number | null): string {
 	return `${m}'${String(s).padStart(2, '0')}"/km`;
 }
 
+/** カレンダーの予定の時刻表示。終日予定は時刻を出さない。 */
+export function formatEventTime(start: string, allDay: boolean): string {
+	if (allDay) return '終日';
+	return new Intl.DateTimeFormat('ja-JP', {
+		timeZone: JST,
+		hour: '2-digit',
+		minute: '2-digit'
+	}).format(new Date(start));
+}
+
 /** datetime-local の値を ISO に直す。ブラウザのローカル時刻として解釈される。 */
 export function localInputToIso(value: string): string {
 	return new Date(value).toISOString();

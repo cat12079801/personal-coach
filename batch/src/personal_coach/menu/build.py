@@ -9,6 +9,7 @@ import datetime as dt
 import logging
 from typing import Any
 
+from ..calendar_ics import fetch_events_safe
 from ..db import client
 from ..garmin.auth import garmin_session
 from ..garmin.plan import active_plan, fetch_plan_tasks, fetch_readiness
@@ -74,6 +75,7 @@ def build_menu(target: dt.date | None = None) -> dict[str, Any]:
             programs=_load_programs(),
             recent_menus=_load_recent_menus(target),
             plan_meta=plan_meta,
+            events=fetch_events_safe(target),
         )
     )
 
