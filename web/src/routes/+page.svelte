@@ -171,16 +171,18 @@
 	}
 
 	/**
-	 * 実績の書き換えは**必ず新しいオブジェクトを作って `done` に代入する**。
+	 * 実績の書き換えは**必ず新しいオブジェクトを作って `done` に代入し、そのまま保存する**。
 	 *
-	 * `{#each ... as set}` のアイテムに `bind:value` する書き方では書き戻りが起きず、
-	 * 入力しても値が反映されなかった（画面で確認済み）。イミュータブルに差し替える。
+	 * 保存ボタンは置かない。開いて数値を入れたら終わり、が実績入力のあるべき手数である。
+	 * （`{#each ... as set}` のアイテムに `bind:value` する書き方では書き戻りが起きない。
+	 * イミュータブルに差し替えること。画面で確認済み。）
 	 */
 	function updateEntry(programId: string, change: Partial<StrengthEntry>) {
 		const record = done[programId];
 		if (!record) return;
-		done = { ...done, [programId]: { ...record, entry: { ...record.entry, ...change } } };
-		savedActual = '';
+		const entry = { ...record.entry, ...change };
+		done = { ...done, [programId]: { ...record, entry } };
+		void persist(programId, entry);
 	}
 
 	function setSetValue(programId: string, index: number, raw: string) {
@@ -194,13 +196,16 @@
 	}
 
 	/** 「メニューどおり」に戻す。入れた数値は破棄する（提示どおりの意味と矛盾するため）。 */
-	function setAsPlanned(programId: string, value: boolean) {
+	function backToPlanned(programId: string) {
 		const sets = done[programId]?.entry.sets;
 		if (!sets) return;
-		updateEntry(programId, {
-			as_planned: value,
-			sets: value ? sets.map(() => ({ value: null })) : sets
-		});
+		updateEntry(programId, { as_planned: true, sets: sets.map(() => ({ value: null })) });
+	}
+
+	function toggleUnit(programId: string) {
+		const entry = done[programId]?.entry;
+		if (!entry) return;
+		updateEntry(programId, { unit: entry.unit === 'seconds' ? 'reps' : 'seconds' });
 	}
 
 	function addSet(programId: string) {
@@ -216,21 +221,21 @@
 	}
 
 	/** 実績の保存。メニュー側は一切書き換えない。 */
-	async function saveActual(programId: string) {
+	async function persist(programId: string, entry: StrengthEntry) {
 		const record = done[programId];
 		if (!record) return;
 		savingActual = programId;
 		savedActual = '';
 		error = '';
 		if (designMode) {
-			savedActual = programId;
 			savingActual = '';
+			savedActual = programId;
 			return;
 		}
 		const { error: e } = await db()
 			.from('strength_logs')
 			// $state のプロキシをそのまま渡さない
-			.update({ exercises: [$state.snapshot(record.entry)] })
+			.update({ exercises: [$state.snapshot(entry)] })
 			.eq('id', record.logId);
 		if (e) error = e.message;
 		else savedActual = programId;
@@ -366,44 +371,38 @@
 				{#if done[item.program_id]}
 					{@const record = done[item.program_id]}
 					<details class="actual">
-						<summary class="actual__summary muted">実績 {actualSummary(record.entry)}</summary>
+						<summary class="actual__summary muted">
+							実績 {actualSummary(record.entry)}
+							{#if savingActual === item.program_id}
+								<span class="actual__state">保存中…</span>
+							{:else if savedActual === item.program_id}
+								<span class="actual__state actual__state--ok">保存した</span>
+							{/if}
+						</summary>
 
 						<!--
-							ふだんはメニューどおりに実施して完了を押すだけなので、それを既定にする。
-							違うことをしたときだけチェックを外して数値を入れる。
+							**保存ボタンは置かない。** 数値を入れた時点で保存する。
+							ふだんはメニューどおりなので、ここを開くのは違うことをした日だけである。
 						-->
-						<label class="actual__check">
-							<input
-								type="checkbox"
-								checked={isAsPlanned(record.entry)}
-								onchange={(e) => setAsPlanned(item.program_id, e.currentTarget.checked)}
-							/>
-							<span>メニューどおり実施した</span>
-						</label>
-
-						<label>
-							<span>数え方</span>
-							<select
-								value={record.entry.unit}
-								onchange={(e) =>
-									updateEntry(item.program_id, {
-										unit: e.currentTarget.value as StrengthEntry['unit']
-									})}
-							>
-								<option value="reps">レップ</option>
-								<option value="seconds">秒</option>
-							</select>
-						</label>
+						<div class="actual__head">
+							<span class="lab">
+								{record.entry.sets.length} sets · {unitLabel(record.entry)}
+							</span>
+							<button type="button" class="linkish" onclick={() => toggleUnit(item.program_id)}>
+								{record.entry.unit === 'seconds' ? '回で数える' : '秒で数える'}
+							</button>
+						</div>
 
 						<div class="actual__sets">
 							{#each record.entry.sets as set, i (i)}
 								<label>
-									<span>{i + 1} セット目（{unitLabel(record.entry)}）</span>
+									<span>{i + 1} セット目</span>
 									<input
 										type="number"
 										min="0"
+										inputmode="numeric"
 										value={set.value ?? ''}
-										oninput={(e) => setSetValue(item.program_id, i, e.currentTarget.value)}
+										onchange={(e) => setSetValue(item.program_id, i, e.currentTarget.value)}
 									/>
 								</label>
 							{/each}
@@ -421,23 +420,16 @@
 							>
 								減らす
 							</button>
+							{#if !isAsPlanned(record.entry)}
+								<button
+									type="button"
+									class="linkish"
+									onclick={() => backToPlanned(item.program_id)}
+								>
+									メニューどおりに戻す
+								</button>
+							{/if}
 						</div>
-
-						{#if record.entry.planned_sets}
-							<p class="muted">メニューの提示は {record.entry.planned_sets} セット。</p>
-						{/if}
-
-						<button
-							class="button--primary"
-							data-state={savingActual === item.program_id ? 'loading' : undefined}
-							disabled={savingActual === item.program_id}
-							onclick={() => saveActual(item.program_id)}
-						>
-							{savingActual === item.program_id ? '保存中…' : '実績を保存'}
-						</button>
-						{#if savedActual === item.program_id}
-							<span class="actual__saved num">保存した</span>
-						{/if}
 					</details>
 				{/if}
 			</section>
@@ -587,21 +579,20 @@
 		align-items: center;
 	}
 
-	.actual__check {
+	.actual__state {
+		margin-left: var(--space-xs);
+		font-size: var(--text-sm);
+	}
+
+	.actual__state--ok {
+		color: var(--color-good);
+	}
+
+	.actual__head {
 		display: flex;
+		justify-content: space-between;
 		align-items: center;
 		gap: var(--space-xs);
-		margin-top: var(--space-xs);
-	}
-
-	.actual__check input {
-		width: auto;
-	}
-
-	.actual__check span {
-		margin: 0;
-		color: var(--color-ink);
-		font-size: var(--text-base);
 	}
 
 	.actual__sets {
@@ -612,14 +603,10 @@
 
 	.actual__actions {
 		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
 		gap: var(--space-xs);
 		margin-bottom: var(--space-sm);
-	}
-
-	.actual__saved {
-		margin-left: var(--space-xs);
-		color: var(--color-good);
-		font-size: var(--text-sm);
 	}
 
 	/* --- 末尾（運用のための領域。主役ではない） ----------------------------- */

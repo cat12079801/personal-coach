@@ -41,6 +41,7 @@
 <svelte:head><title>未紐付けアクティビティ</title></svelte:head>
 
 <div class="page">
+	<a class="back" href="/activities">← 記録</a>
 	<h1>未紐付けアクティビティ</h1>
 	<p class="muted">
 		Garmin で計測したが手動ログを書いていないもの。ここから詳細を追記する。

@@ -212,6 +212,18 @@ button[data-state='loading'] {
 	color: var(--color-ink-2);
 }
 
+/* 語で押させる小さな操作（単位の切り替え・取り消しなど）。枠は持たせない */
+.linkish {
+	min-height: var(--hit);
+	padding: var(--space-2xs) 0;
+	border: 0;
+	background: none;
+	color: var(--color-accent);
+	font-size: var(--text-sm);
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+
 .button--danger {
 	background: var(--color-danger);
 	border-color: var(--color-danger);
@@ -241,6 +253,19 @@ textarea {
 
 input[type='number'] {
 	font-variant-numeric: tabular-nums;
+}
+
+/* iOS の WebKit は datetime-local を中身の幅で組むため、width: 100% を無視して
+ * 枠からはみ出す。appearance を落とし、論理幅の下限を親に合わせて抑える。
+ * Chrome では再現しないので、直したことの確認は実機で行う。 */
+input[type='datetime-local'],
+input[type='date'],
+input[type='time'] {
+	-webkit-appearance: none;
+	appearance: none;
+	min-width: 0;
+	max-width: 100%;
+	-webkit-min-logical-width: calc(100% - var(--space-sm) * 2);
 }
 
 @media (hover: hover) {
@@ -318,19 +343,36 @@ summary {
 	padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* 図と語の 2 段。文字だけの横並びは狙いにくく、押し間違えるという指摘があった */
 .nav a {
+	position: relative;
 	flex: 1;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: var(--space-2xs);
-	min-height: var(--hit);
+	gap: 0.15rem;
+	min-height: 3.75rem;
 	padding: var(--space-xs) var(--space-2xs);
 	font-size: var(--text-sm);
 	font-weight: 600;
 	color: var(--color-muted);
 	/* 折り返した瞬間にタブの高さが揃わなくなる */
 	white-space: nowrap;
+}
+
+.nav svg {
+	width: 22px;
+	height: 22px;
+	display: block;
+}
+
+/* 未読の数はラベルの隣に置かない（「通知1」と 1 語に読めてしまう）。図の肩に付ける */
+.nav .badge {
+	position: absolute;
+	top: 0.35rem;
+	left: 50%;
+	margin-left: 0.35rem;
 }
 
 .nav a:hover {
@@ -360,6 +402,17 @@ summary {
 .error {
 	color: var(--color-danger);
 	font-size: var(--text-sm);
+}
+
+/* タブに無い画面（/unlinked・/programs・紐付け中の /logs）には必ず戻る導線を置く。
+ * ホーム画面 PWA にはブラウザの戻るボタンが無く、エッジスワイプ頼みになるため */
+.back {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--hit);
+	font-size: var(--text-sm);
+	font-weight: 600;
+	color: var(--color-ink-2);
 }
 
 /* デザイン検証モードの表示（web/src/lib/design.ts）。本番では描かれない */

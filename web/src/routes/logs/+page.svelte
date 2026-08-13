@@ -131,72 +131,89 @@
 <svelte:head><title>手動登録</title></svelte:head>
 
 <div class="page">
+	{#if activityId}
+		<!-- 未紐付け一覧から来た場合。PWA には戻るボタンが無いので必ず導線を置く -->
+		<a class="back" href="/unlinked">← 未紐付け</a>
+	{/if}
 	<h1>手動登録</h1>
 
-	<form class="card" onsubmit={submit}>
-		<label>
-			<span>種目</span>
-			<select bind:value={kind}>
-				{#each Object.entries(LOG_TABLES) as [key, spec] (key)}
-					<option value={key}>{spec.label}</option>
-				{/each}
-			</select>
-		</label>
+	<!--
+		縦に伸びると入力が終わらないので、数値は 1 行に畳み、
+		RPE とメモは畳んでおく（既定では触らせない）。
+	-->
+	<form onsubmit={submit}>
+		<div class="seg">
+			{#each Object.entries(LOG_TABLES) as [key, spec] (key)}
+				<button
+					type="button"
+					class="seg__btn"
+					class:seg__btn--on={kind === key}
+					aria-pressed={kind === key}
+					onclick={() => (kind = key as LogKind)}
+				>
+					{spec.label}
+				</button>
+			{/each}
+		</div>
 
 		<label>
 			<span>日時</span>
 			<input type="datetime-local" bind:value={at} required />
 		</label>
 
-
-		<span class="muted">{kind === 'strength' ? 'エクササイズ' : '要素'}</span>
 		{#each items as item, i (i)}
-			<div class="card" style="background: transparent;">
-				{#each FIELDS[kind] as field (field.key)}
-					<label>
-						<span>{field.label}</span>
-						{#if field.type === 'check'}
-							<input
-								type="checkbox"
-								style="width: auto;"
-								checked={Boolean(item[field.key])}
-								onchange={(e) => (item[field.key] = e.currentTarget.checked)}
-							/>
-						{:else if field.type === 'number'}
+			{@const fields = FIELDS[kind]}
+			<div class="item">
+				<div class="item__head">
+					<span class="lab">{kind === 'strength' ? `Exercise ${i + 1}` : `Element ${i + 1}`}</span>
+					{#if items.length > 1}
+						<button type="button" class="linkish" onclick={() => removeItem(i)}>この行を消す</button>
+					{/if}
+				</div>
+
+				<label>
+					<span>{fields[0].label}</span>
+					<input
+						type="text"
+						value={(item[fields[0].key] as string) ?? ''}
+						onchange={(e) => (item[fields[0].key] = e.currentTarget.value || undefined)}
+					/>
+				</label>
+
+				<div class="item__nums">
+					{#each fields.slice(1) as field (field.key)}
+						<label>
+							<span>{field.label}</span>
 							<input
 								type="number"
+								inputmode="numeric"
 								value={(item[field.key] as number) ?? ''}
 								onchange={(e) =>
 									(item[field.key] = e.currentTarget.value === ''
 										? undefined
 										: Number(e.currentTarget.value))}
 							/>
-						{:else}
-							<input
-								type="text"
-								value={(item[field.key] as string) ?? ''}
-								onchange={(e) => (item[field.key] = e.currentTarget.value || undefined)}
-							/>
-						{/if}
-					</label>
-				{/each}
-				{#if items.length > 1}
-					<button type="button" onclick={() => removeItem(i)}>削除</button>
-				{/if}
+						</label>
+					{/each}
+				</div>
 			</div>
 		{/each}
-		<button type="button" onclick={addItem}>＋ 追加</button>
 
-		<label style="margin-top: 1rem;">
-			<!-- 心拍が当てにならない種目があるため RPE で補正する（docs/01-overview.md） -->
-			<span>RPE（主観強度 1-10）</span>
-			<input type="number" min="1" max="10" bind:value={rpe} />
-		</label>
+		<button type="button" class="button--quiet" onclick={addItem}>行を足す</button>
 
-		<label>
-			<span>メモ</span>
-			<textarea rows="2" bind:value={note}></textarea>
-		</label>
+		<details class="extra">
+			<summary class="muted">RPE・メモ</summary>
+			<label>
+				<!-- 心拍が当てにならない種目があるため RPE で補正する（docs/01-overview.md） -->
+				<span>RPE（主観強度 1-10）</span>
+				<input type="number" min="1" max="10" inputmode="numeric" bind:value={rpe} />
+			</label>
+
+			<label>
+				<span>メモ</span>
+				<textarea rows="2" bind:value={note}></textarea>
+			</label>
+		</details>
 
 		{#if activityId}
 			<p class="muted">Garmin アクティビティに紐付けて保存する。</p>
@@ -204,8 +221,13 @@
 		{#if error}<p class="error">{error}</p>{/if}
 		{#if saved}<p class="muted">保存した。</p>{/if}
 
-		<button class="button--primary" type="submit" disabled={saving}>
-			{saving ? '…' : '保存'}
+		<button
+			class="button--ink"
+			type="submit"
+			data-state={saving ? 'loading' : undefined}
+			disabled={saving}
+		>
+			{saving ? '保存中…' : '保存'}
 		</button>
 	</form>
 
@@ -231,3 +253,48 @@
 		{/each}
 	{/if}
 </div>
+
+<style>
+	/* 種目の切り替え。select だと開いて選ぶ 2 手になるので、2 択は並べて 1 手にする */
+	.seg {
+		display: flex;
+		margin-bottom: var(--space-sm);
+	}
+
+	.seg__btn {
+		flex: 1;
+		border-right-width: 0;
+	}
+
+	.seg__btn:last-child {
+		border-right-width: var(--rule-bold);
+	}
+
+	.seg__btn--on {
+		background: var(--color-ink);
+		color: var(--color-paper);
+	}
+
+	.item {
+		padding: var(--space-sm) 0;
+		border-bottom: var(--rule-hair) solid var(--color-rule);
+	}
+
+	.item__head {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-xs);
+	}
+
+	/* 数値は 1 行に畳む。3 つ縦に並べると入力が終わらない */
+	.item__nums {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+		gap: var(--space-xs);
+	}
+
+	.extra {
+		margin: var(--space-md) 0;
+	}
+</style>

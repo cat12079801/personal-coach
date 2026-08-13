@@ -104,10 +104,8 @@
 <svelte:head><title>筋トレプログラム</title></svelte:head>
 
 <div class="page">
-	<div class="row">
-		<h1>筋トレプログラム</h1>
-		<a href="/settings">← 設定</a>
-	</div>
+	<a class="back" href="/settings">← 設定</a>
+	<h1>筋トレプログラム</h1>
 
 	<!--
 		Garmin コーチの筋トレはランの補強に閉じているので、上半身とスキル系をここで足す。

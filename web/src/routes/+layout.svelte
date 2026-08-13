@@ -8,6 +8,7 @@
 	import { designMode } from '$lib/design';
 	import { designNotifications } from '$lib/fixtures';
 	import Login from '$lib/Login.svelte';
+	import NavIcon from '$lib/NavIcon.svelte';
 
 	let { children } = $props();
 
@@ -22,15 +23,41 @@
 		}
 	});
 
+	/**
+	 * 「今日」を開いたら通知は用済みとみなして既読にする。
+	 *
+	 * push は要約しか運ばず、本体はこの画面にある（ADR-0004）。つまり当日のメニューを
+	 * 開いた時点で通知の役目は終わっている。履歴は残るので消えるわけではない。
+	 */
+	// デザイン検証モードでも既読の見え方を再現する（DB は触らない）
+	let designRead = $state(false);
+
+	async function markAllRead() {
+		if (designMode) {
+			designRead = true;
+			unread = 0;
+			return;
+		}
+		const { error } = await db()
+			.from('notifications')
+			.update({ read_at: new Date().toISOString() })
+			.is('read_at', null);
+		if (!error) unread = 0;
+	}
+
 	// ログイン後・画面遷移ごとに未読数を取り直す
 	$effect(() => {
-		void page.url.pathname;
+		const path = page.url.pathname;
 		if (!session.session) {
 			unread = 0;
 			return;
 		}
+		if (path === '/') {
+			void markAllRead();
+			return;
+		}
 		if (designMode) {
-			unread = designNotifications.filter((n) => !n.read_at).length;
+			unread = designRead ? 0 : designNotifications.filter((n) => !n.read_at).length;
 			return;
 		}
 		db()
@@ -43,12 +70,12 @@
 	});
 
 	const tabs = [
-		{ href: '/', label: '今日' },
-		{ href: '/activities', label: '記録' },
-		{ href: '/logs', label: '手動登録' },
-		{ href: '/notifications', label: '通知' },
-		{ href: '/settings', label: '設定' }
-	];
+		{ href: '/', label: '今日', icon: 'today' },
+		{ href: '/activities', label: '記録', icon: 'activities' },
+		{ href: '/logs', label: '手動登録', icon: 'logs' },
+		{ href: '/notifications', label: '通知', icon: 'notifications' },
+		{ href: '/settings', label: '設定', icon: 'settings' }
+	] as const;
 </script>
 
 <!-- デザイン検証モードは Supabase の設定が無くても動く（フィクスチャしか読まないため） -->
@@ -78,11 +105,10 @@
 
 	<nav class="nav">
 		{#each tabs as tab (tab.href)}
-			<a
-				href={tab.href}
-				aria-current={page.url.pathname === tab.href ? 'page' : undefined}
-			>
-				{tab.label}{#if tab.href === '/notifications' && unread > 0}
+			<a href={tab.href} aria-current={page.url.pathname === tab.href ? 'page' : undefined}>
+				<NavIcon name={tab.icon} />
+				{tab.label}
+				{#if tab.href === '/notifications' && unread > 0}
 					<span class="badge">{unread}</span>
 				{/if}
 			</a>
