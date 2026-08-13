@@ -12,6 +12,17 @@
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<meta name="apple-mobile-web-app-title" content="Coach" />
+		<!--
+			display 書体。欧文と数字にだけ効く（和文の Web フォントは数 MB あり
+			PWA の初回起動を壊すので入れない。design.md の「書体」を参照）。
+			落ちてもシステムのコンデンス体にフォールバックするだけで壊れない。
+		-->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;700&display=swap"
+		/>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

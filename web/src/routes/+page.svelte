@@ -2,7 +2,13 @@
 	import { db } from '$lib/supabase';
 	import { designMode } from '$lib/design';
 	import { designCompletions, designMenu } from '$lib/fixtures';
-	import { todayJst, formatDateTime, formatDuration, formatEventTime } from '$lib/format';
+	import {
+		todayJst,
+		formatDateTime,
+		formatDayShort,
+		formatEventTime,
+		toMinutes
+	} from '$lib/format';
 	import { isAsPlanned } from '$lib/types';
 	import type {
 		DailyMenu,
@@ -250,6 +256,11 @@
 		requesting = false;
 	}
 
+	/** 生成根拠に入っている readiness。無い日は出さない（無い数字は作らない）。 */
+	const readiness = $derived(
+		(menu?.source?.readiness as { score?: number } | null | undefined)?.score ?? null
+	);
+
 	$effect(() => {
 		void load();
 		void loadDone();
@@ -258,13 +269,16 @@
 
 <svelte:head><title>今日のトレーニング</title></svelte:head>
 
+<!--
+	Hallmark · macrostructure: Stat-Led · theme: Sport（競技）
+	一日の量を数字で先に出し、種目はその下に台帳の行として並べる。
+	囲い（カード）は使わない。区切りは罫線だけ。
+-->
 <div class="page">
-	<h1>今日のトレーニング</h1>
-
 	{#if loading}
 		<p class="muted">読み込み中…</p>
 	{:else if loadError}
-		<div class="card">
+		<div class="panel">
 			<p class="error">{loadError}</p>
 			<button onclick={load}>再読み込み</button>
 		</div>
@@ -274,97 +288,114 @@
 			<p class="muted">03:00 JST のバッチで生成される。</p>
 		</div>
 	{:else}
-		<div class="card">
-			<p style="margin-top: 0; font-size: 1.05rem;">{menu.menu.summary ?? '（要約なし）'}</p>
-			<p class="muted">生成 {formatDateTime(menu.generated_at)}</p>
-		</div>
+		<header class="board">
+			<h1 class="board__date num">{formatDayShort(today)}</h1>
+			{#if readiness != null}
+				<!-- 無い日は出さない。数字の穴は正直だが、作った数字は嘘になる -->
+				<span class="board__rdy lab num">Readiness {readiness}</span>
+			{/if}
+		</header>
+		<p class="board__summary">{menu.menu.summary ?? '（要約なし）'}</p>
 
-		<h2>ラン</h2>
-		{#if menu.menu.rest_day}
-			<div class="card muted">休養日</div>
-		{:else if menu.menu.run}
-			<!-- Garmin コーチのプランは改変しない。取得したまま表示する -->
-			<div class="card">
-				<div class="row">
-					<strong>{menu.menu.run.name ?? 'ラン'}</strong>
-					<span class="muted">{formatDuration(menu.menu.run.duration_sec)}</span>
-				</div>
-				{#if menu.menu.run.intensity}
-					<div class="muted">{menu.menu.run.intensity}</div>
-				{/if}
+		<!-- ラン。Garmin コーチのプランは改変しない。取得したまま表示する -->
+		<section class="entry">
+			<div class="entry__lab lab">
+				{menu.menu.run?.intensity ? `Run — ${menu.menu.run.intensity}` : 'Run'}
 			</div>
-		{:else}
-			<div class="card muted">なし</div>
-		{/if}
-
-		{#if menu.menu.garmin_strength?.length}
-			<h2>補強（Garmin）</h2>
-			{#each menu.menu.garmin_strength as item, i (i)}
-				<div class="card">
-					<div class="row">
-						<strong>{item.name ?? '補強'}</strong>
-						<span class="muted">{formatDuration(item.duration_sec)}</span>
-					</div>
+			{#if menu.menu.rest_day}
+				<div class="entry__line">
+					<div class="entry__title muted">休養日</div>
 				</div>
-			{/each}
-		{/if}
+			{:else if menu.menu.run}
+				<div class="entry__line">
+					<div class="entry__title">{menu.menu.run.name ?? 'ラン'}</div>
+					{#if toMinutes(menu.menu.run.duration_sec) != null}
+						<div class="figure num">
+							{toMinutes(menu.menu.run.duration_sec)}<span class="figure__unit">min</span>
+						</div>
+					{/if}
+				</div>
+			{:else}
+				<div class="entry__line"><div class="entry__title muted">なし</div></div>
+			{/if}
+		</section>
 
-		{#if menu.menu.own_strength?.length}
-			<h2>筋トレ</h2>
-			{#each menu.menu.own_strength as item (item.program_id)}
-				<div class="card">
-					<div class="row">
-						<strong>{item.program}</strong>
-						<span class="muted">段階 {item.stage}</span>
+		{#each menu.menu.garmin_strength ?? [] as item, i (i)}
+			<section class="entry">
+				<div class="entry__lab lab">Strength — Garmin</div>
+				<div class="entry__line">
+					<div class="entry__title">{item.name ?? '補強'}</div>
+					{#if toMinutes(item.duration_sec) != null}
+						<div class="figure num">
+							{toMinutes(item.duration_sec)}<span class="figure__unit">min</span>
+						</div>
+					{/if}
+				</div>
+			</section>
+		{/each}
+
+		{#each menu.menu.own_strength ?? [] as item (item.program_id)}
+			<section class="entry">
+				<div class="entry__lab lab">Skill — Stage {item.stage}</div>
+				<div class="entry__line">
+					<div>
+						<div class="entry__title">{item.program}</div>
+						{#if item.label}<div class="entry__sub">{item.label}</div>{/if}
+						{#if item.note}<div class="entry__note muted">{item.note}</div>{/if}
 					</div>
-					<div>{item.label ?? ''}{#if item.sets} ・{item.sets} セット{/if}</div>
-					{#if item.note}<div class="muted">{item.note}</div>{/if}
-					<button
-						style="margin-top: 0.75rem;"
-						class:button--primary={!done[item.program_id]}
-						disabled={toggling === item.program_id}
-						onclick={() => toggleDone(item)}
-					>
-						{done[item.program_id] ? '✓ 完了済み（取り消す）' : '完了にする'}
-					</button>
+					{#if item.sets}
+						<div class="figure num">{item.sets}<span class="figure__unit">sets</span></div>
+					{/if}
+				</div>
 
-					<!--
-						実績はメニューと独立に持つ。メニューは目標であって実績ではないので、
-						セット数もレップ数もここで自由に変えられる。
-					-->
-					{#if done[item.program_id]}
-						{@const record = done[item.program_id]}
-						<details style="margin-top: 0.75rem;">
-							<summary class="muted">実績 {actualSummary(record.entry)}</summary>
+				<button
+					class="do"
+					class:button--ink={!done[item.program_id]}
+					class:do--done={done[item.program_id]}
+					data-state={toggling === item.program_id ? 'loading' : undefined}
+					disabled={toggling === item.program_id}
+					onclick={() => toggleDone(item)}
+				>
+					{done[item.program_id] ? '✓ 完了済み（取り消す）' : '完了にする'}
+				</button>
 
-							<!--
-								ふだんはメニューどおりに実施して完了を押すだけなので、それを既定にする。
-								違うことをしたときだけチェックを外して数値を入れる。
-							-->
-							<label style="margin-top: 0.75rem;">
-								<span>メニューどおり実施した</span>
-								<input
-									type="checkbox"
-									style="width: auto;"
-									checked={isAsPlanned(record.entry)}
-									onchange={(e) => setAsPlanned(item.program_id, e.currentTarget.checked)}
-								/>
-							</label>
+				<!--
+					実績はメニューと独立に持つ。メニューは目標であって実績ではないので、
+					セット数もレップ数もここで自由に変えられる。
+				-->
+				{#if done[item.program_id]}
+					{@const record = done[item.program_id]}
+					<details class="actual">
+						<summary class="actual__summary muted">実績 {actualSummary(record.entry)}</summary>
 
-							<label style="margin-top: 0.75rem;">
-								<span>数え方</span>
-								<select
-									value={record.entry.unit}
-									onchange={(e) =>
-										updateEntry(item.program_id, {
-											unit: e.currentTarget.value as StrengthEntry['unit']
-										})}
-								>
-									<option value="reps">レップ</option>
-									<option value="seconds">秒</option>
-								</select>
-							</label>
+						<!--
+							ふだんはメニューどおりに実施して完了を押すだけなので、それを既定にする。
+							違うことをしたときだけチェックを外して数値を入れる。
+						-->
+						<label class="actual__check">
+							<input
+								type="checkbox"
+								checked={isAsPlanned(record.entry)}
+								onchange={(e) => setAsPlanned(item.program_id, e.currentTarget.checked)}
+							/>
+							<span>メニューどおり実施した</span>
+						</label>
 
+						<label>
+							<span>数え方</span>
+							<select
+								value={record.entry.unit}
+								onchange={(e) =>
+									updateEntry(item.program_id, {
+										unit: e.currentTarget.value as StrengthEntry['unit']
+									})}
+							>
+								<option value="reps">レップ</option>
+								<option value="seconds">秒</option>
+							</select>
+						</label>
+
+						<div class="actual__sets">
 							{#each record.entry.sets as set, i (i)}
 								<label>
 									<span>{i + 1} セット目（{unitLabel(record.entry)}）</span>
@@ -376,75 +407,231 @@
 									/>
 								</label>
 							{/each}
+						</div>
 
-							<div class="row" style="justify-content: flex-start;">
-								<button type="button" onclick={() => addSet(item.program_id)}>＋ セット</button>
-								<button
-									type="button"
-									disabled={record.entry.sets.length === 0}
-									onclick={() => removeSet(item.program_id)}
-								>
-									− セット
-								</button>
-							</div>
-
-							{#if record.entry.planned_sets}
-								<p class="muted">メニューの提示は {record.entry.planned_sets} セット。</p>
-							{/if}
-
-							<button
-								class="button--primary"
-								style="margin-top: 0.5rem;"
-								disabled={savingActual === item.program_id}
-								onclick={() => saveActual(item.program_id)}
-							>
-								{savingActual === item.program_id ? '…' : '実績を保存'}
+						<div class="actual__actions">
+							<button type="button" class="button--quiet" onclick={() => addSet(item.program_id)}>
+								セットを足す
 							</button>
-							{#if savedActual === item.program_id}<span class="muted"> 保存した。</span>{/if}
-						</details>
-					{/if}
-				</div>
-			{/each}
-		{/if}
+							<button
+								type="button"
+								class="button--quiet"
+								disabled={record.entry.sets.length === 0}
+								onclick={() => removeSet(item.program_id)}
+							>
+								減らす
+							</button>
+						</div>
+
+						{#if record.entry.planned_sets}
+							<p class="muted">メニューの提示は {record.entry.planned_sets} セット。</p>
+						{/if}
+
+						<button
+							class="button--primary"
+							data-state={savingActual === item.program_id ? 'loading' : undefined}
+							disabled={savingActual === item.program_id}
+							onclick={() => saveActual(item.program_id)}
+						>
+							{savingActual === item.program_id ? '保存中…' : '実績を保存'}
+						</button>
+						{#if savedActual === item.program_id}
+							<span class="actual__saved num">保存した</span>
+						{/if}
+					</details>
+				{/if}
+			</section>
+		{/each}
 
 		<!--
 			カレンダーの予定。メニュー生成のルールには使われず、表示専用。
 			「今日やることを 1 画面で確認する」ためのもの。
 		-->
-		<h2>今日の予定</h2>
-		{#if menu.menu.schedule?.length}
-			{#each menu.menu.schedule as event, i (i)}
-				<div class="card">
-					<div class="row">
-						<strong>{event.summary || '(無題)'}</strong>
-						<span class="muted">{formatEventTime(event.start, event.all_day)}</span>
-					</div>
+		{#each menu.menu.schedule ?? [] as event, i (i)}
+			<section class="entry entry--quiet">
+				<div class="entry__lab lab">Calendar</div>
+				<div class="entry__line">
+					<div class="entry__title">{event.summary || '(無題)'}</div>
+					<div class="figure figure--sm num">{formatEventTime(event.start, event.all_day)}</div>
 				</div>
-			{/each}
-		{:else}
-			<div class="card muted">予定なし</div>
-		{/if}
+			</section>
+		{/each}
 
-		<h2>生成根拠</h2>
-		<details class="card">
-			<summary class="muted">source を表示</summary>
-			<pre style="white-space: pre-wrap; font-size: 0.75rem;">{JSON.stringify(
-					menu.source,
-					null,
-					2
-				)}</pre>
-		</details>
+		<footer class="foot">
+			<p class="muted">生成 {formatDateTime(menu.generated_at)}</p>
+
+			<details>
+				<summary class="muted">生成根拠（source）</summary>
+				<pre class="foot__pre">{JSON.stringify(menu.source, null, 2)}</pre>
+			</details>
+
+			<p class="muted">
+				カレンダーの反映が遅れて予定を拾えていない場合は再生成する。
+			</p>
+			<button
+				class="button--quiet"
+				data-state={requesting ? 'loading' : undefined}
+				onclick={requestRegenerate}
+				disabled={requesting || requested}
+			>
+				{requested ? '再生成をリクエスト済み' : 'メニューを再生成'}
+			</button>
+
+			{#if error}<p class="error">{error}</p>{/if}
+		</footer>
 	{/if}
-
-	<h2>手動リカバリ</h2>
-	<div class="card">
-		<p class="muted" style="margin-top: 0;">
-			カレンダーの反映が遅れて予定を拾えていない場合に再生成する。
-		</p>
-		<button onclick={requestRegenerate} disabled={requesting || requested}>
-			{requested ? '再生成をリクエスト済み' : 'メニューを再生成'}
-		</button>
-	</div>
-
-	{#if error}<p class="error">{error}</p>{/if}
 </div>
+
+<style>
+	/* --- 見出し（スコアボード） --------------------------------------------- */
+	.board {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: var(--space-sm);
+		border-bottom: var(--rule-heavy) solid var(--color-ink);
+		padding-bottom: var(--space-2xs);
+	}
+
+	.board__date {
+		font-size: var(--text-xl);
+		margin: 0;
+	}
+
+	.board__rdy {
+		color: var(--color-accent);
+		white-space: nowrap;
+	}
+
+	.board__summary {
+		margin: var(--space-sm) 0 var(--space-lg);
+		font-size: var(--text-base);
+		max-width: 40ch;
+	}
+
+	/* --- 台帳の行 ------------------------------------------------------------ */
+	.entry {
+		padding: var(--space-md) 0;
+		border-bottom: var(--rule-hair) solid var(--color-rule);
+	}
+
+	.entry--quiet .entry__title {
+		color: var(--color-muted);
+	}
+
+	.entry__lab {
+		display: block;
+		margin-bottom: var(--space-2xs);
+	}
+
+	.entry__line {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: var(--space-sm);
+	}
+
+	.entry__title {
+		font-size: var(--text-md);
+		font-weight: 600;
+		line-height: 1.3;
+	}
+
+	.entry__sub {
+		font-size: var(--text-sm);
+		margin-top: var(--space-2xs);
+	}
+
+	.entry__note {
+		margin-top: var(--space-2xs);
+	}
+
+	/* 数字が主役。単位は小さく添えるだけ */
+	.figure {
+		font-family: var(--font-display);
+		font-size: var(--text-2xl);
+		font-weight: 700;
+		line-height: 1;
+		white-space: nowrap;
+	}
+
+	.figure--sm {
+		font-size: var(--text-md);
+	}
+
+	.figure__unit {
+		font-size: var(--text-sm);
+		font-weight: 400;
+		color: var(--color-muted);
+		margin-left: 0.15em;
+	}
+
+	.do {
+		margin-top: var(--space-sm);
+	}
+
+	.do--done {
+		border-color: var(--color-good);
+		color: var(--color-good);
+	}
+
+	/* --- 実績 ---------------------------------------------------------------- */
+	.actual {
+		margin-top: var(--space-sm);
+	}
+
+	.actual__summary {
+		cursor: pointer;
+		min-height: var(--hit);
+		display: flex;
+		align-items: center;
+	}
+
+	.actual__check {
+		display: flex;
+		align-items: center;
+		gap: var(--space-xs);
+		margin-top: var(--space-xs);
+	}
+
+	.actual__check input {
+		width: auto;
+	}
+
+	.actual__check span {
+		margin: 0;
+		color: var(--color-ink);
+		font-size: var(--text-base);
+	}
+
+	.actual__sets {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+		gap: var(--space-xs);
+	}
+
+	.actual__actions {
+		display: flex;
+		gap: var(--space-xs);
+		margin-bottom: var(--space-sm);
+	}
+
+	.actual__saved {
+		margin-left: var(--space-xs);
+		color: var(--color-good);
+		font-size: var(--text-sm);
+	}
+
+	/* --- 末尾（運用のための領域。主役ではない） ----------------------------- */
+	.foot {
+		margin-top: var(--space-2xl);
+		padding-top: var(--space-md);
+		border-top: var(--rule-hair) solid var(--color-rule);
+	}
+
+	.foot__pre {
+		white-space: pre-wrap;
+		font-size: var(--text-xs);
+		overflow-x: auto;
+	}
+</style>

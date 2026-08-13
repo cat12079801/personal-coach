@@ -1,0 +1,104 @@
+/* Hallmark · tokens · theme: Sport（競技）· anchor hue: 60 warm / accent 32 vermilion
+ *
+ * design.md がシステムの正である。ここはその実体。
+ * **色とフォントは必ずこのトークン経由で参照する。** 実装側に生の hex や
+ * oklch() を書かない（書いた時点でシステムが崩れ始める）。
+ */
+
+:root {
+	color-scheme: light dark;
+
+	/* --- 面と文字 ---------------------------------------------------------
+	 * 純白・純黒は使わない。すべて anchor hue へわずかに寄せる。
+	 */
+	--color-paper: oklch(97% 0.006 70); /* 地 */
+	--color-paper-2: oklch(94% 0.008 70); /* 一段上の面（hover・帯） */
+	--color-paper-3: oklch(90% 0.01 70); /* 押し込み・沈んだ面 */
+	--color-rule: oklch(86% 0.008 70); /* 罫線 */
+	--color-rule-2: oklch(76% 0.008 70); /* 入力の枠 */
+	--color-muted: oklch(45% 0.012 60); /* 副文字。paper 上で 4.5:1 を満たす */
+	--color-ink-2: oklch(35% 0.012 55);
+	--color-ink: oklch(22% 0.014 55); /* 本文 */
+
+	/* --- signal ----------------------------------------------------------
+	 * accent は 1 色。面の 3% 以上を塗らない。
+	 */
+	--color-accent: oklch(50% 0.18 32); /* 朱 */
+	--color-accent-ink: oklch(98% 0.006 70); /* accent を塗った面に載せる文字 */
+	--color-good: oklch(45% 0.11 150); /* 完了 */
+	--color-danger: oklch(48% 0.17 25);
+	--color-danger-ink: oklch(98% 0.006 70);
+	/* フォーカスは暖色パレットに対して意図的に寒色。accent を塗ったボタンの上でも消えない */
+	--color-focus: oklch(45% 0.15 250);
+
+	/* --- 書体 -------------------------------------------------------------
+	 * display は欧文と数字だけに効く（和文は system にフォールバックする）。
+	 * 和文の Web フォントは数 MB あり PWA の初回起動を壊すので入れない。
+	 * 「データは display、言葉は system」という役割分担にしてある。
+	 */
+	--font-display: 'Big Shoulders Display', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+	--font-body: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+
+	/* --- 大きさ（1.25 の等比） --------------------------------------------- */
+	--text-xs: 0.64rem;
+	--text-sm: 0.8rem;
+	--text-base: 1rem;
+	--text-md: 1.25rem;
+	--text-lg: 1.5625rem;
+	--text-xl: 1.9531rem;
+	--text-2xl: 2.4414rem;
+
+	/* --- 余白（4pt） ------------------------------------------------------- */
+	--space-2xs: 0.25rem;
+	--space-xs: 0.5rem;
+	--space-sm: 0.75rem;
+	--space-md: 1rem;
+	--space-lg: 1.5rem;
+	--space-xl: 2rem;
+	--space-2xl: 3rem;
+
+	/* --- 罫線と角 ---------------------------------------------------------
+	 * 競技表示なので角は立てる。丸めるのは badge だけ。
+	 */
+	--rule-hair: 1px;
+	--rule-bold: 2px;
+	--rule-heavy: 3px;
+	--radius-none: 0;
+	--radius-sm: 2px;
+	--radius-pill: 999px;
+
+	/* --- 動き -------------------------------------------------------------
+	 * ブラウザ既定の ease は使わない。
+	 */
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+	--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+	--dur-micro: 120ms;
+	--dur-short: 220ms;
+	--dur-long: 420ms;
+
+	/* 触れる要素の下限。44px は妥協しない */
+	--hit: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color-paper: oklch(16% 0.01 60);
+		--color-paper-2: oklch(20% 0.012 60);
+		--color-paper-3: oklch(24% 0.012 60);
+		--color-rule: oklch(30% 0.01 60);
+		--color-rule-2: oklch(40% 0.01 60);
+		--color-muted: oklch(70% 0.012 60);
+		--color-ink-2: oklch(82% 0.008 65);
+		--color-ink: oklch(94% 0.006 70);
+
+		/* 暗地では accent を明るく・彩度を落とす。載せる文字は逆に暗くする
+		 * （白抜きにすると 2.7:1 まで落ちる。監査で実測した失敗） */
+		--color-accent: oklch(72% 0.15 40);
+		--color-accent-ink: oklch(18% 0.02 40);
+		--color-good: oklch(72% 0.13 150);
+		--color-danger: oklch(70% 0.15 25);
+		--color-danger-ink: oklch(18% 0.02 25);
+		--color-focus: oklch(75% 0.13 250);
+	}
+}

@@ -26,6 +26,24 @@ export function formatDateTime(iso: string): string {
 	}).format(new Date(iso));
 }
 
+/** 「8/12 水」。スコアボードの見出し用（web/design.md）。 */
+export function formatDayShort(date: string): string {
+	return new Intl.DateTimeFormat('ja-JP', {
+		timeZone: JST,
+		month: 'numeric',
+		day: 'numeric',
+		weekday: 'short'
+	})
+		.format(new Date(`${date}T00:00:00+09:00`))
+		.replace(/[()]/g, ' ')
+		.trim();
+}
+
+/** 秒を分に丸める。数字だけを返す（単位は組版側で小さく添える）。 */
+export function toMinutes(sec: number | null | undefined): number | null {
+	return sec == null ? null : Math.round(sec / 60);
+}
+
 export function formatDuration(sec: number | null): string {
 	if (sec == null) return '—';
 	const h = Math.floor(sec / 3600);
