@@ -16,11 +16,10 @@ activities (
 -- Garmin 由来。ランニングのみ
 running_details (activity_id fk, distance_m, avg_pace, elev_gain, splits jsonb)
 
--- 手動登録。activity_id は NULL 許容（必須）
--- strength_logs の program_id / menu_date は「メニューから完了にした行」の目印（0007）
+-- 手動登録は筋トレだけ（0008 で skating_logs を廃止）。activity_id は NULL 許容
+-- program_id / menu_date は「メニューから完了にした行」の目印（0007）
 strength_logs  (id, activity_id fk null, performed_at, exercises jsonb, note,
                 program_id fk null, menu_date null)
-skating_logs   (id, activity_id fk null, practiced_at, elements jsonb, note)
 
 daily_menus        (date pk, generated_at, source jsonb, menu jsonb, notified_at)
 push_subscriptions (id, endpoint unique, p256dh, auth, created_at)
@@ -33,6 +32,9 @@ garmin_tokens      (id pk, token_json jsonb, updated_at)
 
 ウォッチの付け忘れ・充電切れの回と、計測はしたが詳細を書かない回の**両方が必ず発生する**。
 1 対 1 必須にすると破綻する。
+
+現状この列は使っていない（紐付け済み 0 件）。**ウォッチの付け忘れは Garmin Connect 側で
+手動記録する**方針になったため（2026-08-13）。列は残すが、埋める導線はアプリに持たない。
 
 ### `raw jsonb` を必ず保存する
 
@@ -63,16 +65,16 @@ garmin_tokens      (id pk, token_json jsonb, updated_at)
 過去の `daily_menus` に何を置いたかで数える（[rules.py](../batch/src/personal_coach/menu/rules.py)）。
 実績の入力精度に依存させないため。
 
-### 未紐付けアクティビティの導線
+### 未紐付けアクティビティ一覧は廃止した（0008）
 
-UI には「**未紐付けの Garmin アクティビティ一覧**」を出し、そこから詳細を追記する導線を作る。
+「Garmin にはサマリしか無いので中身をアプリで足す」という前提の画面だったが、前提が消えた。
 
-```sql
-select a.* from activities a
-left join strength_logs s on s.activity_id = a.id
-left join skating_logs  k on k.activity_id = a.id
-where s.id is null and k.id is null;
-```
+- スケートは**運動時間と消費カロリーが分かれば十分**で、要素やトライ数は書かない
+- ウォッチの付け忘れは Garmin Connect 側で手動記録する
+- ランには元々アプリ側の手動ログの型が無い
+
+結果、`unlinked_activities` は紐付く見込みのない記録を 48 件中 48 件並べるだけになっていた
+（ラン 34・スケート 9・筋トレ 4・ボルダリング 1）。ビューごと落とした。
 
 ## jsonb カラムの想定形状
 
@@ -91,9 +93,6 @@ where s.id is null and k.id is null;
    "planned_sets": 3,            // メニューの提示。書き換えない
    "as_planned": false,          // 提示どおりに実施したか。完了直後は true
    "sets": [{ "value": 15 }, { "value": 12 }] }]        // 実績。後から編集する
-
-// skating_logs.elements
-[{ "name": "シングルアクセル", "attempts": 10, "success": 4, "note": "" }]
 
 // daily_menus.source  — 生成の根拠。後から「なぜこのメニューになったか」を追える
 { "garmin_plan": {}, "training_readiness": 62, "calendar": [], "applied_rules": ["..."] }

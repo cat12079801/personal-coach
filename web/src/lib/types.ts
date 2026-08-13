@@ -91,13 +91,19 @@ export type NotificationRow = {
 	read_at: string | null;
 };
 
-export type LogKind = 'strength' | 'skating';
-
-/** 種目ごとにテーブル名・日時カラム・詳細カラムが違うのでまとめて持つ。 */
-export const LOG_TABLES: Record<LogKind, { table: string; at: string; detail: string; label: string }> = {
-	strength: { table: 'strength_logs', at: 'performed_at', detail: 'exercises', label: '筋トレ' },
-	skating: { table: 'skating_logs', at: 'practiced_at', detail: 'elements', label: 'スケート' }
-};
+/**
+ * 手動登録は筋トレだけ。
+ *
+ * スケートは運動時間と消費カロリーが分かれば十分で、要素やトライ数は書かない。
+ * ランのウォッチ忘れは Garmin Connect 側で手動記録する。したがってアプリ側で
+ * 欠測を埋める仕組みは持たない（migration 0008 で skating_logs ごと落とした）。
+ */
+export const STRENGTH_LOG = {
+	table: 'strength_logs',
+	at: 'performed_at',
+	detail: 'exercises',
+	label: '筋トレ'
+} as const;
 
 export type ManualLog = {
 	id: string;

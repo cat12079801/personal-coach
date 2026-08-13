@@ -48,7 +48,7 @@ Hallmark の `audit` を `web/src` に当てた結果と、その後の対応。
 | 暗色が暗すぎて見にくい | ✅ 地 16% → 27%、コントラスト 16:1 → 11:1、罫線 1.7 → 2.1 |
 | ナビの縦幅が狭い | ✅ 44px → 62px |
 | ナビを押し間違える・狙いにくい | ✅ 図と語の 2 段にした。図は外部ライブラリを入れず 5 つ手で引いた |
-| 戻れない画面がある | ✅ `/unlinked` と紐付け中の `/logs` に戻る導線。`/programs` も同じ形に揃えた |
+| 戻れない画面がある | ✅ `/programs` に戻る導線。`/unlinked` は画面ごと廃止した（0008） |
 | 通知を既読にする導線が弱い | ✅ 「今日」を開いた時点で全既読にする。push は要約しか運ばず本体はこの画面にあるため（ADR-0004） |
 | 手動登録の日時がはみ出す | 🚧 iOS の WebKit 固有（Chrome では再現せず）。`-webkit-appearance` と論理幅の下限で抑えた。**実機で要確認** |
 | 実績の入力が面倒い | ✅ 保存ボタンとチェックボックスを廃止。数値を入れた時点で保存する |
@@ -56,8 +56,6 @@ Hallmark の `audit` を `web/src` に当てた結果と、その後の対応。
 
 ## 残り
 
-- `/activities` `/unlinked` `/logs` `/programs` `/settings` `/notifications` の 6 画面を
-  同じ部品に寄せる
-- `/logs` の `.card` 入れ子を解消する
+- `/activities` `/logs` `/programs` `/settings` `/notifications` の 5 画面を同じ部品に寄せる
 - display 書体を Google Fonts の CDN から読んでいる。オフライン優先なら
   woff2（Latin サブセット）を自前配信に切り替える

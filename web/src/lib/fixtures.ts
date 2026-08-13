@@ -160,11 +160,6 @@ export const designActivities: ActivityRow[] = [
 	}
 ];
 
-export const designUnlinked: Activity[] = [
-	designActivities[2] as Activity,
-	designActivities[1] as Activity
-];
-
 export const designNotifications: NotificationRow[] = [
 	{
 		id: 'design-noti-1',
@@ -281,14 +276,3 @@ export const designStrengthLogs: ManualLog[] = [
 	}
 ];
 
-export const designSkatingLogs: ManualLog[] = [
-	{
-		id: 'design-log-3',
-		activity_id: 'design-act-3',
-		rpe: 6,
-		note: null,
-		created_at: at(2, 22, 15),
-		practiced_at: at(2, 19, 40),
-		elements: [{ name: 'シングルアクセル', attempts: 12, success: 5 }]
-	}
-];

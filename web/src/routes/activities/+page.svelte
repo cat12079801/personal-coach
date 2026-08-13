@@ -42,10 +42,7 @@
 <svelte:head><title>アクティビティ</title></svelte:head>
 
 <div class="page">
-	<div class="row">
-		<h1>アクティビティ</h1>
-		<a href="/unlinked">未紐付け →</a>
-	</div>
+	<h1>アクティビティ</h1>
 
 	{#if loading}
 		<p class="muted">読み込み中…</p>

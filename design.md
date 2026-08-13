@@ -91,7 +91,7 @@ error / success）。触れる要素は 44px を下回らせない。
 | 画面 | 組み |
 |---|---|
 | `/` 今日 | スコアボード（日付 + readiness）→ 要約 → 台帳の行（ラベル / 名前 / 数字）。主役 |
-| `/activities` `/unlinked` | 台帳の行に徹する。数字は右端で揃える |
+| `/activities` | 台帳の行に徹する。数字は右端で揃える |
 | `/logs` `/programs` `/settings` | 入力と設定。`.panel` を使ってよい唯一の場所 |
 | `/notifications` | 履歴の行。未読は accent の点で示す |
 

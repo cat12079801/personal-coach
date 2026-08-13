@@ -404,7 +404,7 @@ summary {
 	font-size: var(--text-sm);
 }
 
-/* タブに無い画面（/unlinked・/programs・紐付け中の /logs）には必ず戻る導線を置く。
+/* タブに無い画面（/programs）には必ず戻る導線を置く。
  * ホーム画面 PWA にはブラウザの戻るボタンが無く、エッジスワイプ頼みになるため */
 .back {
 	display: inline-flex;
