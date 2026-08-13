@@ -16,6 +16,8 @@
   - メニュー生成に LLM を使う
   - 独自筋トレを Garmin のワークアウトとして登録する／実績を Garmin に書き戻す
   - マイグレーションを CI から自動適用する（手で流す。docs/09-setup-supabase.md）
+  - display 書体を自前配信する／Service Worker でアプリシェルをキャッシュする
+    （docs/11-design-audit.md）
 - **ライブラリのバージョンやメソッド名は 2026-08-10 時点の確認結果。**
   着手時に `demo.py` および README で最新を確認する
 
