@@ -83,14 +83,18 @@
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--color-paper: oklch(16% 0.01 60);
-		--color-paper-2: oklch(20% 0.012 60);
-		--color-paper-3: oklch(24% 0.012 60);
-		--color-rule: oklch(30% 0.01 60);
-		--color-rule-2: oklch(40% 0.01 60);
-		--color-muted: oklch(70% 0.012 60);
-		--color-ink-2: oklch(82% 0.008 65);
-		--color-ink: oklch(94% 0.006 70);
+		/* 黒に寄せない。地を炭色まで上げ、文字とのコントラストを 16:1 から 11:1 前後へ
+		 * 落とす。真っ黒 + 純白に近い組み合わせは、数字が主役の画面ではぎらついて読みにくい。
+		 * 暖色の chroma も上げて「消えた黒」ではなく色のある暗さにする。 */
+		--color-paper: oklch(27% 0.015 60);
+		--color-paper-2: oklch(31% 0.016 60);
+		--color-paper-3: oklch(35% 0.016 60);
+		/* 罫線は 2:1 前後まで上げる。1.7:1 だと暗所で区切りが消える */
+		--color-rule: oklch(46% 0.014 60);
+		--color-rule-2: oklch(56% 0.012 60);
+		--color-muted: oklch(76% 0.014 60);
+		--color-ink-2: oklch(84% 0.01 65);
+		--color-ink: oklch(89% 0.008 70);
 
 		/* 暗地では accent を明るく・彩度を落とす。載せる文字は逆に暗くする
 		 * （白抜きにすると 2.7:1 まで落ちる。監査で実測した失敗） */
