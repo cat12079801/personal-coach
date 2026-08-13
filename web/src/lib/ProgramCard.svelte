@@ -74,34 +74,54 @@
 	}
 </script>
 
-<div class="card">
-	<div class="row">
-		<strong>{draft.name || '(名称未設定)'}</strong>
-		<span class="muted">
-			{#if !draft.active}停止中 ・ {/if}週 {draft.weekly_target} 回 ・ 中 {draft.min_gap_days - 1} 日
-		</span>
+<section class="entry">
+	<!-- 和文なので lab（大文字化・トラッキング）は掛けない。design.md「書体」を参照 -->
+	<div class="entry__lab muted">
+		{#if !draft.active}<span class="off">停止中</span> ・{/if}
+		週 {draft.weekly_target} 回 ・ 中 {draft.min_gap_days - 1} 日
 	</div>
 
-	{#if draft.stages.length === 0}
-		<p class="muted">段階が未定義。編集して追加する。</p>
-	{:else}
-		<div class="muted">段階 {draft.stage} / {draft.stages.length}</div>
+	<div class="entry__line">
 		<div>
-			{current?.label || '(ラベルなし)'}{#if current?.sets} ・{current.sets} セット{/if}
+			<div class="entry__title">{draft.name || '(名称未設定)'}</div>
+			{#if draft.stages.length === 0}
+				<div class="entry__sub muted">段階が未定義。編集して追加する。</div>
+			{:else}
+				<div class="entry__sub">
+					{current?.label || '(ラベルなし)'}{#if current?.sets} ・{current.sets} セット{/if}
+				</div>
+				{#if current?.note}<div class="entry__note muted">{current.note}</div>{/if}
+			{/if}
 		</div>
-		{#if current?.note}<div class="muted">{current.note}</div>{/if}
+		{#if draft.stages.length > 0}
+			<div class="figure">
+				{draft.stage}<span class="figure__unit">/ {draft.stages.length}</span>
+			</div>
+		{/if}
+	</div>
 
-		<div class="stage-buttons">
-			<button onclick={() => bump(-1)} disabled={busy || draft.stage <= 1}>← 下げる</button>
-			<button onclick={() => bump(1)} disabled={busy || draft.stage >= draft.stages.length}>
-				上げる →
+	<div class="actions">
+		{#if draft.stages.length > 0}
+			<!-- 段階は自動で上がらない。できるようになったら自分で上げる（OD-5） -->
+			<button
+				class="button--quiet"
+				onclick={() => bump(-1)}
+				disabled={busy || draft.stage <= 1}
+			>
+				下げる
 			</button>
-		</div>
-	{/if}
-
-	<button onclick={() => (open = !open)} style="margin-top: 0.75rem;">
-		{open ? '閉じる' : '編集'}
-	</button>
+			<button
+				class="button--quiet"
+				onclick={() => bump(1)}
+				disabled={busy || draft.stage >= draft.stages.length}
+			>
+				上げる
+			</button>
+		{/if}
+		<button class="linkish" onclick={() => (open = !open)}>
+			{open ? '閉じる' : '編集'}
+		</button>
+	</div>
 
 	{#if open}
 		<div class="editor">
@@ -113,38 +133,45 @@
 			<div class="two">
 				<label>
 					<span>週の回数</span>
-					<input type="number" min="1" max="7" bind:value={draft.weekly_target} />
+					<input type="number" min="1" max="7" inputmode="numeric" bind:value={draft.weekly_target} />
 				</label>
 				<label>
 					<!-- min_gap_days は日付差。2 なら中 1 日 -->
 					<span>最短間隔（日数差）</span>
-					<input type="number" min="1" bind:value={draft.min_gap_days} />
+					<input type="number" min="1" inputmode="numeric" bind:value={draft.min_gap_days} />
 				</label>
 			</div>
 
-			<label>
-				<span>表示順</span>
-				<input type="number" bind:value={draft.sort_order} />
-			</label>
-
-			<label class="checkbox">
-				<input type="checkbox" bind:checked={draft.active} />
-				<span>有効にする（外すとメニューに出さない）</span>
-			</label>
+			<div class="two">
+				<label>
+					<span>表示順</span>
+					<input type="number" inputmode="numeric" bind:value={draft.sort_order} />
+				</label>
+				<label class="checkbox">
+					<input type="checkbox" bind:checked={draft.active} />
+					<span>メニューに出す</span>
+				</label>
+			</div>
 
 			<h3>段階</h3>
 			<p class="muted">上から順に 1、2、3… となる。内容は自分で決める。</p>
 
 			{#each draft.stages as stage, i (i)}
 				<div class="stage" class:stage--current={i === draft.stage - 1}>
-					<div class="row">
-						<strong class="muted">段階 {i + 1}</strong>
-						<span>
-							<button onclick={() => moveStage(i, -1)} disabled={i === 0}>↑</button>
-							<button onclick={() => moveStage(i, 1)} disabled={i === draft.stages.length - 1}>
-								↓
+					<div class="stage__head">
+						<span class="lab">
+							{#if i === draft.stage - 1}<span class="mark"></span>{/if}Stage {i + 1}
+						</span>
+						<span class="stage__ops">
+							<button class="linkish" onclick={() => moveStage(i, -1)} disabled={i === 0}>上へ</button>
+							<button
+								class="linkish"
+								onclick={() => moveStage(i, 1)}
+								disabled={i === draft.stages.length - 1}
+							>
+								下へ
 							</button>
-							<button onclick={() => removeStage(i)}>削除</button>
+							<button class="linkish" onclick={() => removeStage(i)}>消す</button>
 						</span>
 					</div>
 					<label>
@@ -157,6 +184,7 @@
 							<input
 								type="number"
 								min="1"
+								inputmode="numeric"
 								value={stage.sets ?? ''}
 								onchange={(e) => (stage.sets = stageNumber(e.currentTarget.value))}
 							/>
@@ -173,66 +201,102 @@
 				</div>
 			{/each}
 
-			<button onclick={addStage}>＋ 段階を追加</button>
+			<button class="button--quiet" onclick={addStage}>段階を足す</button>
 
-			<div class="actions">
-				<button class="button--primary" onclick={save} disabled={busy || !dirty}>
-					{busy ? '…' : '保存'}
+			<div class="actions actions--editor">
+				<button
+					class="button--ink"
+					onclick={save}
+					data-state={busy ? 'loading' : undefined}
+					disabled={busy || !dirty}
+				>
+					{busy ? '保存中…' : '保存'}
 				</button>
-				<button onclick={reset} disabled={busy || !dirty}>取り消し</button>
+				<button class="button--quiet" onclick={reset} disabled={busy || !dirty}>取り消し</button>
 				{#if confirmingDelete}
 					<button
-						class="danger"
+						class="button--danger"
 						onclick={async () => {
 							busy = true;
 							await ondelete(draft.id);
 						}}
 					>
-						本当に削除する
+						本当に消す
 					</button>
-					<button onclick={() => (confirmingDelete = false)}>やめる</button>
+					<button class="button--quiet" onclick={() => (confirmingDelete = false)}>やめる</button>
 				{:else}
-					<button onclick={() => (confirmingDelete = true)}>削除</button>
+					<button class="linkish" onclick={() => (confirmingDelete = true)}>この種目を消す</button>
 				{/if}
 			</div>
 		</div>
 	{/if}
-</div>
+</section>
 
 <style>
-	.stage-buttons {
+	.off {
+		color: var(--color-danger);
+	}
+
+	.actions {
 		display: flex;
-		gap: 0.5rem;
-		margin-top: 0.75rem;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-xs);
+		margin-top: var(--space-sm);
+	}
+
+	.actions--editor {
+		margin-top: var(--space-md);
 	}
 
 	.editor {
-		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px solid var(--border);
+		margin-top: var(--space-md);
+		padding-top: var(--space-md);
+		border-top: var(--rule-hair) solid var(--color-rule);
 	}
 
 	.two {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
+		gap: var(--space-xs);
 	}
 
+	/* 箱の中に箱を作らない。段階は罫線で区切った行にする */
 	.stage {
-		border: 1px solid var(--border);
-		border-radius: 0.5rem;
-		padding: 0.75rem;
-		margin-bottom: 0.5rem;
+		padding: var(--space-sm) 0;
+		border-top: var(--rule-hair) solid var(--color-rule);
 	}
 
-	.stage--current {
-		border-color: var(--accent);
+	.stage__head {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-xs);
+		margin-bottom: var(--space-2xs);
+	}
+
+	.stage__ops {
+		display: flex;
+		gap: var(--space-sm);
+	}
+
+	/* 現在の段階は色の四角だけで示す。縁を太くすると箱に見える */
+	.stage--current .lab {
+		color: var(--color-accent);
+	}
+
+	.mark {
+		display: inline-block;
+		width: 0.5rem;
+		height: 0.5rem;
+		margin-right: var(--space-2xs);
+		background: var(--color-accent);
 	}
 
 	.checkbox {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-xs);
 	}
 
 	.checkbox input {
@@ -244,20 +308,12 @@
 	}
 
 	h3 {
-		font-size: 0.9rem;
-		margin: 1.25rem 0 0.25rem;
-	}
-
-	.actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin-top: 1rem;
-	}
-
-	.danger {
-		background: var(--danger);
-		border-color: var(--danger);
-		color: #fff;
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--color-ink-2);
+		margin: var(--space-lg) 0 var(--space-2xs);
 	}
 </style>

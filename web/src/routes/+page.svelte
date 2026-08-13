@@ -501,63 +501,6 @@
 		max-width: 40ch;
 	}
 
-	/* --- 台帳の行 ------------------------------------------------------------ */
-	.entry {
-		padding: var(--space-md) 0;
-		border-bottom: var(--rule-hair) solid var(--color-rule);
-	}
-
-	.entry--quiet .entry__title {
-		color: var(--color-muted);
-	}
-
-	.entry__lab {
-		display: block;
-		margin-bottom: var(--space-2xs);
-	}
-
-	.entry__line {
-		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		gap: var(--space-sm);
-	}
-
-	.entry__title {
-		font-size: var(--text-md);
-		font-weight: 600;
-		line-height: 1.3;
-	}
-
-	.entry__sub {
-		font-size: var(--text-sm);
-		margin-top: var(--space-2xs);
-	}
-
-	.entry__note {
-		margin-top: var(--space-2xs);
-	}
-
-	/* 数字が主役。単位は小さく添えるだけ */
-	.figure {
-		font-family: var(--font-display);
-		font-size: var(--text-2xl);
-		font-weight: 700;
-		line-height: 1;
-		white-space: nowrap;
-	}
-
-	.figure--sm {
-		font-size: var(--text-md);
-	}
-
-	.figure__unit {
-		font-size: var(--text-sm);
-		font-weight: 400;
-		color: var(--color-muted);
-		margin-left: 0.15em;
-	}
-
 	.do {
 		margin-top: var(--space-sm);
 	}

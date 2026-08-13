@@ -177,17 +177,27 @@
 		<div class="empty">まだ記録がない。</div>
 	{:else}
 		{#each recent as log (log.id)}
-			<div class="card">
-				<div class="row">
-					<strong>{(log[STRENGTH_LOG.detail] as { name?: string }[])?.[0]?.name ?? '筋トレ'}</strong>
-					<span class="muted num">{formatDateTime(log[STRENGTH_LOG.at] as string)}</span>
+			{@const exercises = (log[STRENGTH_LOG.detail] as { name?: string }[]) ?? []}
+			<section class="entry">
+				<div class="entry__lab lab">
+					<span class="num">{formatDateTime(log[STRENGTH_LOG.at] as string)}</span>
+					{#if log.rpe}— RPE {log.rpe}{/if}
 				</div>
-				<div class="muted">
-					{(log[STRENGTH_LOG.detail] as unknown[])?.length ?? 0} 種目
-					{#if log.rpe}・RPE {log.rpe}{/if}
+				<div class="entry__line">
+					<div>
+						<div class="entry__title">{exercises[0]?.name ?? '筋トレ'}</div>
+						{#if exercises.length > 1}
+							<div class="entry__sub muted">
+								ほか {exercises.slice(1).map((e) => e.name).filter(Boolean).join('、')}
+							</div>
+						{/if}
+						{#if log.note}<div class="entry__note muted">{log.note}</div>{/if}
+					</div>
+					<div class="figure figure--sm">
+						{exercises.length}<span class="figure__unit">種目</span>
+					</div>
 				</div>
-				{#if log.note}<div>{log.note}</div>{/if}
-			</div>
+			</section>
 		{/each}
 	{/if}
 </div>

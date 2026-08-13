@@ -9,6 +9,9 @@
 	 * iOS では通知が届かない・消えることがあり、push は要約しか運ばない。
 	 * この履歴一覧と未読カウンタは推奨ではなく必須の作りである。
 	 * docs/adr/0004-push-payload-minimal.md
+	 *
+	 * なお「今日」を開いた時点で全既読になる（+layout.svelte）。ここは読み返す場所であり、
+	 * 既読にするための場所ではない。
 	 */
 	let rows = $state<NotificationRow[]>([]);
 	let loading = $state(true);
@@ -38,17 +41,6 @@
 		}
 	}
 
-	async function markAllRead() {
-		const now = new Date().toISOString();
-		if (designMode) {
-			rows = rows.map((row) => ({ ...row, read_at: row.read_at ?? now }));
-			return;
-		}
-		const { error: e } = await db().from('notifications').update({ read_at: now }).is('read_at', null);
-		if (e) error = e.message;
-		else await load();
-	}
-
 	$effect(() => {
 		void load();
 	});
@@ -57,31 +49,52 @@
 <svelte:head><title>通知履歴</title></svelte:head>
 
 <div class="page">
-	<div class="row">
-		<h1>通知履歴</h1>
-		{#if rows.some((r) => !r.read_at)}
-			<button onclick={markAllRead}>すべて既読</button>
-		{/if}
-	</div>
+	<h1>通知履歴</h1>
 
 	{#if loading}
 		<p class="muted">読み込み中…</p>
 	{:else if error}
-		<p class="error">{error}</p>
+		<div class="panel">
+			<p class="error">{error}</p>
+			<button onclick={load}>再読み込み</button>
+		</div>
 	{:else if rows.length === 0}
 		<div class="empty">まだ通知がない。</div>
 	{:else}
 		{#each rows as n (n.id)}
-			<div class="card">
-				<div class="row">
-					<strong>{n.title}{#if !n.read_at}<span class="badge">新</span>{/if}</strong>
-					<span class="muted">{formatDateTime(n.sent_at)}</span>
+			<section class="entry" class:entry--unread={!n.read_at}>
+				<div class="entry__lab lab">
+					<!-- 未読は色の点だけで示す。「新」の字は要らない -->
+					{#if !n.read_at}<span class="dot" aria-label="未読"></span>{/if}
+					<span class="num">{formatDateTime(n.sent_at)}</span>
 				</div>
-				<div>{n.body}</div>
+				<div class="entry__title">{n.title}</div>
+				<div class="entry__sub">{n.body}</div>
 				{#if n.target_date}
-					<a href="/">{n.target_date} のメニューを見る →</a>
+					<a class="entry__link" href="/">{n.target_date} のメニューを見る →</a>
 				{/if}
-			</div>
+			</section>
 		{/each}
 	{/if}
 </div>
+
+<style>
+	.dot {
+		display: inline-block;
+		width: 0.5rem;
+		height: 0.5rem;
+		margin-right: var(--space-2xs);
+		background: var(--color-accent);
+		vertical-align: baseline;
+	}
+
+	.entry--unread .entry__title {
+		color: var(--color-ink);
+	}
+
+	.entry__link {
+		display: inline-block;
+		margin-top: var(--space-xs);
+		font-size: var(--text-sm);
+	}
+</style>

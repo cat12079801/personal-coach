@@ -68,7 +68,7 @@
 	<h1>設定</h1>
 
 	<h2>通知</h2>
-	<div class="card">
+	<div class="panel">
 		{#if !pushSupported && !designMode}
 			<p>この環境では Web Push を扱えない。</p>
 		{:else if !configured}
@@ -80,55 +80,88 @@
 				「ホーム画面に追加」から追加し、追加されたアイコンから起動する。
 			</p>
 		{:else if permission === 'granted'}
-			<p>通知は有効である。</p>
+			<p class="ok">通知は有効である。</p>
 			<p class="muted">08:00 JST に当日のメニューが届く。</p>
 			{#if saved}<p class="muted">購読を保存した。</p>{/if}
 		{:else}
-			<button class="button--primary" onclick={onEnableClick} disabled={busy}>
+			<button class="button--ink" onclick={onEnableClick} data-state={busy ? 'loading' : undefined} disabled={busy}>
 				{busy ? '…' : '通知を有効にする'}
 			</button>
 		{/if}
 		{#if error}<p class="error">{error}</p>{/if}
 
-		<button onclick={onDiagnoseClick} style="margin-top: 0.5rem;">診断</button>
-		{#if info}
+		<details class="diag">
+			<summary class="muted">診断</summary>
 			<!-- 実機で詰まったときの切り分け用。購読が DB に入らない事象があった -->
-			<pre style="white-space: pre-wrap; font-size: 0.75rem; margin-bottom: 0;">{Object.entries(
-					info
-				)
-					.map(([k, v]) => `${k}: ${v}`)
-					.join('\n')}</pre>
-		{/if}
+			<button class="button--quiet" onclick={onDiagnoseClick}>いま調べる</button>
+			{#if info}
+				<dl class="kv">
+					{#each Object.entries(info) as [k, v] (k)}
+						<dt class="lab">{k}</dt>
+						<dd class="num">{v}</dd>
+					{/each}
+				</dl>
+			{/if}
+		</details>
 	</div>
 
 	<h2>筋トレプログラム</h2>
-	<div class="card">
-		<p class="muted" style="margin-top: 0;">
+	<div class="panel">
+		<p class="muted" style:margin-top="0">
 			上半身・スキル系の種目と段階を管理する。ここが空だとメニューに筋トレが出ない。
 		</p>
-		<a class="button" href="/programs" style="display: inline-block;">プログラムを編集</a>
+		<a class="button" href="/programs">プログラムを編集</a>
 	</div>
 
 	<h2>アカウント</h2>
-	<div class="card">
+	<div class="panel">
 		<p class="muted">{session.session?.user.email}</p>
 		<button onclick={() => session.signOut()}>ログアウト</button>
 	</div>
 
 	<h2>ビルド</h2>
-	<div class="card">
+	<div class="panel">
 		<!-- 実機の PWA はキャッシュが残る。表示が古いときここで見ているデプロイを確かめる -->
-		<div class="row">
-			<span class="muted">コミット</span>
-			<code>{buildInfo.commit}</code>
-		</div>
-		<div class="row">
-			<span class="muted">ビルド時刻</span>
-			<span>{formatBuiltAt()}</span>
-		</div>
-		<div class="row">
-			<span class="muted">ブランチ</span>
-			<code>{buildInfo.branch}</code>
-		</div>
+		<dl class="kv">
+			<dt class="lab">Commit</dt>
+			<dd class="num">{buildInfo.commit}</dd>
+			<dt class="lab">Built</dt>
+			<dd class="num">{formatBuiltAt()}</dd>
+			<dt class="lab">Branch</dt>
+			<dd class="num">{buildInfo.branch}</dd>
+		</dl>
 	</div>
 </div>
+
+<style>
+	.ok {
+		color: var(--color-good);
+	}
+
+	/* 名前と値の対。値は等幅数字で右に落とす */
+	.kv {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: var(--space-2xs) var(--space-sm);
+		margin: var(--space-xs) 0 0;
+	}
+
+	.kv dt {
+		align-self: baseline;
+	}
+
+	.kv dd {
+		margin: 0;
+		text-align: right;
+		font-size: var(--text-sm);
+		overflow-wrap: anywhere;
+	}
+
+	.diag {
+		margin-top: var(--space-xs);
+	}
+
+	.button {
+		display: inline-block;
+	}
+</style>
