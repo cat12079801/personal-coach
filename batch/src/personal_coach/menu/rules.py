@@ -43,8 +43,13 @@ R4. 週あたりの実施回数の下限を確保する。週は月曜始まり�
 
 ## 実施回数の数え方
 
-実績（`strength_logs` や Garmin の記録）ではなく、**過去の `daily_menus` に何を置いたか**で数える。
-実績の入力精度に依存させないため。
+**完了記録（`strength_logs` の `program_id` 付きの行）がある日だけ数える**（2026-08-17 に変更）。
+
+当初は「過去の `daily_menus` に何を置いたか」で数えていた。実績の入力精度に依存させない
+ためだったが、置いただけでやらなかった日が実施として数えられ、翌日以降が間隔で潰れる。
+「やっていないのに次が出ない」ほうが実害が大きいという判断で入れ替えた。
+
+**記録を忘れた日はノーカウントになる**。その日はやらなかったものとして詰めて出す。
 """
 
 from __future__ import annotations
@@ -110,8 +115,9 @@ class MenuInput:
     tasks: list[PlanTask]
     readiness: dict[str, Any] | None
     programs: list[Program]
-    # 過去の daily_menus。{date: menu} 形式。実施回数と間隔の判定に使う
-    recent_menus: dict[dt.date, dict[str, Any]]
+    # 過去の完了記録。{メニューの日付: 完了した program_id の集合}。
+    # 実施回数と間隔の判定に使う。置いただけの日はここに現れない
+    completions: dict[dt.date, set[str]]
     plan_meta: dict[str, Any] = field(default_factory=dict)
     # カレンダーの予定。表示用でありルールには使わない
     events: list[dict[str, Any]] = field(default_factory=list)
@@ -135,25 +141,16 @@ def _low_readiness(readiness: dict[str, Any] | None) -> bool:
     return score is not None and score < LOW_READINESS_SCORE
 
 
-def _last_done(program_id: str, recent: dict[dt.date, dict[str, Any]]) -> dt.date | None:
-    dates = [
-        day
-        for day, menu in recent.items()
-        if any(item.get("program_id") == program_id for item in menu.get("own_strength") or [])
-    ]
+def _last_done(program_id: str, completions: dict[dt.date, set[str]]) -> dt.date | None:
+    dates = [day for day, ids in completions.items() if program_id in ids]
     return max(dates) if dates else None
 
 
-def _count_this_week(
-    program_id: str, target: dt.date, recent: dict[dt.date, dict[str, Any]]
-) -> int:
+def _count_this_week(program_id: str, target: dt.date, completions: dict[dt.date, set[str]]) -> int:
     """週は月曜始まりで数える。"""
     monday = target - dt.timedelta(days=target.weekday())
     return sum(
-        1
-        for day, menu in recent.items()
-        if monday <= day < target
-        and any(item.get("program_id") == program_id for item in menu.get("own_strength") or [])
+        1 for day, ids in completions.items() if monday <= day < target and program_id in ids
     )
 
 
@@ -184,7 +181,7 @@ def _plan_days(program: Program, inp: MenuInput) -> list[dt.date]:
     そこで**回数を最優先**し、同数なら優先度の高い日を多く含む組を選ぶ。
     候補は最大 7 日なので総当たりで足りる。
     """
-    done = _count_this_week(program.id, inp.date, inp.recent_menus)
+    done = _count_this_week(program.id, inp.date, inp.completions)
     remaining = program.weekly_target - done
     if remaining <= 0:
         return []
@@ -196,7 +193,7 @@ def _plan_days(program: Program, inp: MenuInput) -> list[dt.date]:
     # 当日からその週の日曜まで
     sunday = inp.date + dt.timedelta(days=6 - inp.date.weekday())
     candidates = [inp.date + dt.timedelta(days=i) for i in range((sunday - inp.date).days + 1)]
-    last = _last_done(program.id, inp.recent_menus)
+    last = _last_done(program.id, inp.completions)
 
     def feasible(combo: tuple[dt.date, ...]) -> bool:
         placed = [d for d in [last, *combo] if d is not None]
@@ -221,11 +218,11 @@ def _plan_days(program: Program, inp: MenuInput) -> list[dt.date]:
 
 def _should_place(program: Program, inp: MenuInput) -> tuple[bool, str]:
     """独自筋トレを今日置くかどうか。理由も返す。"""
-    done = _count_this_week(program.id, inp.date, inp.recent_menus)
+    done = _count_this_week(program.id, inp.date, inp.completions)
     if program.weekly_target - done <= 0:
         return False, "weekly_target_met"
 
-    last = _last_done(program.id, inp.recent_menus)
+    last = _last_done(program.id, inp.completions)
     if last is not None and (inp.date - last).days < program.min_gap_days:
         return False, "min_gap"
 

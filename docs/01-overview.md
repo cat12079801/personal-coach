@@ -54,6 +54,7 @@ Garmin の補強がある日に重ねてよい。`taskList` が 7 日先まで�
 **ランには手を入れない**（R1）。
 
 **R4. 週あたりの実施回数の下限を確保する。** 既定は週 2 回・中 1 日以上。
+回数と間隔は**完了記録がある日だけ**数える（置いただけの日は数えない）。
 
 実装は [batch/src/personal_coach/menu/rules.py](../batch/src/personal_coach/menu/rules.py)。
 2026-08-12 に本人レビュー済み。

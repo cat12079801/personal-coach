@@ -126,8 +126,8 @@
 	/**
 	 * 完了のトグル。押し間違いを戻せるよう取り消しも同じボタンで行う。
 	 *
-	 * この記録はメニュー生成のルールには影響しない。実施回数と間隔は
-	 * 過去の daily_menus で数える（batch/src/personal_coach/menu/rules.py）。
+	 * この記録が翌日以降のメニューを決める。実施回数と間隔は完了記録がある日だけ
+	 * 数える（batch/src/personal_coach/menu/rules.py）。押し忘れた日はやらなかった扱い。
 	 */
 	async function toggleDone(item: OwnStrength) {
 		toggling = item.program_id;

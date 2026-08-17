@@ -61,9 +61,12 @@ garmin_tokens      (id pk, token_json jsonb, updated_at)
 `as_planned` は false になり、`sets` が正となる。`as_planned` が無い行（この項目を足す前に
 記録したもの）は true として扱う。
 
-**この記録はメニュー生成のルールには影響しない。** 実施回数と間隔の判定は
-過去の `daily_menus` に何を置いたかで数える（[rules.py](../batch/src/personal_coach/menu/rules.py)）。
-実績の入力精度に依存させないため。
+**この記録がメニュー生成の入力になる**（2026-08-17 に変更）。実施回数と間隔は
+`program_id` 付きの行がある日だけ数える（[rules.py](../batch/src/personal_coach/menu/rules.py)）。
+以前は `daily_menus` に何を置いたかで数えていたが、置いただけでやらなかった日が
+実施として数えられ、翌日以降が間隔で潰れていた。
+
+日付は `performed_at` ではなく `menu_date` で見る。**記録を忘れた日はノーカウントになる。**
 
 ### 未紐付けアクティビティ一覧は廃止した（0008）
 

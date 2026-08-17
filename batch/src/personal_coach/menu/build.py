@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 JST = dt.timezone(dt.timedelta(hours=9))
 
-# 実施回数と間隔の判定に使う遡り日数
+# 完了記録を遡る日数。実施回数と間隔の判定に使う
 LOOKBACK_DAYS = 14
 
 
@@ -45,17 +45,30 @@ def _load_programs() -> list[Program]:
     ]
 
 
-def _load_recent_menus(target: dt.date) -> dict[dt.date, dict[str, Any]]:
+def _load_completions(target: dt.date) -> dict[dt.date, set[str]]:
+    """完了記録を {メニューの日付: 完了した program_id} にして返す。
+
+    数えるのは `program_id` が入っている行だけ。/logs の自由入力は種目に紐づかないので
+    対象外になる（`menu_date` も入らないため、この範囲指定から自然に落ちる）。
+
+    日付は `performed_at` ではなく `menu_date` で見る。日をまたいで押しても
+    「その日のメニューをやった」として数えたいため。
+    """
     since = (target - dt.timedelta(days=LOOKBACK_DAYS)).isoformat()
     res = (
         client()
-        .table("daily_menus")
-        .select("date, menu")
-        .gte("date", since)
-        .lt("date", target.isoformat())
+        .table("strength_logs")
+        .select("program_id, menu_date")
+        .gte("menu_date", since)
+        .lt("menu_date", target.isoformat())
+        .not_.is_("program_id", "null")
         .execute()
     )
-    return {dt.date.fromisoformat(row["date"]): row["menu"] or {} for row in res.data}
+    completions: dict[dt.date, set[str]] = {}
+    for row in res.data:
+        day = dt.date.fromisoformat(row["menu_date"])
+        completions.setdefault(day, set()).add(row["program_id"])
+    return completions
 
 
 def build_menu(target: dt.date | None = None) -> dict[str, Any]:
@@ -73,7 +86,7 @@ def build_menu(target: dt.date | None = None) -> dict[str, Any]:
             tasks=[PlanTask(**t) for t in tasks],
             readiness=readiness,
             programs=_load_programs(),
-            recent_menus=_load_recent_menus(target),
+            completions=_load_completions(target),
             plan_meta=plan_meta,
             events=fetch_events_safe(target),
         )
