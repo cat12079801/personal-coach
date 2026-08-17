@@ -43,7 +43,17 @@
                                                         ▼
                                         Cloudflare Pages（静的 PWA）
                                         起動時に Supabase から当日メニューを取得
+                                                        │
+                                                        │「メニューを再生成」
+                                                        ▼
+                                              regenerate_requests に 1 行
+                                                        ▲
+   15 分おき ────────▶ regenerate ─────────────────────┘
+   (cron */15 * * * *)   未処理があれば Garmin を引き直して daily_menus を作り直す
 ```
+
+再生成が Garmin を引き直すのは、コーチが睡眠スコアを見て当日のプランを差し替えることが
+あるため（[08-open-decisions.md](08-open-decisions.md) の OD-1）。
 
 ## なぜこの構成なのか
 

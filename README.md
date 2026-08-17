@@ -90,8 +90,13 @@ Cloudflare Pages の設定と iOS 対応の要点は [web/README.md](web/README.
 |---|---|---|---|
 | [daily-ingest.yml](.github/workflows/daily-ingest.yml) | `0 18 * * *` | 03:00 | Garmin 取り込み + メニュー生成 + keepalive |
 | [daily-notify.yml](.github/workflows/daily-notify.yml) | `0 23 * * *` | 08:00 | Web Push 送信 |
+| [regenerate.yml](.github/workflows/regenerate.yml) | `*/15 * * * *` | 随時 | 再生成リクエストを拾って Garmin から作り直す |
 
 GitHub Actions の cron は最大数十分ずれる。3 時 → 8 時で 5 時間のバッファがあるので実害はない。
+
+再生成は PWA の「メニューを再生成」ボタンが `regenerate_requests` に積んだ行を拾う。
+睡眠スコアでコーチのプランが差し替わることがあるため、**DB の値から組み直すのではなく
+Garmin を引き直す**（[docs/08-open-decisions.md](docs/08-open-decisions.md) の OD-1）。
 
 ## 現在地
 

@@ -18,6 +18,7 @@ dev = ["ruff>=0.6"]
 [project.scripts]
 pc-ingest = "personal_coach.cli:ingest"
 pc-notify = "personal_coach.cli:notify"
+pc-regenerate = "personal_coach.cli:regenerate"
 
 [build-system]
 requires = ["hatchling"]

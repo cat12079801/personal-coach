@@ -33,13 +33,15 @@
 ## 現在地（2026-08-12）
 
 **全マイルストーン完了。** 毎日 03:00 JST に取り込みとメニュー生成、08:00 JST に通知が
-GitHub Actions で自動実行される。残作業と運用状態は [docs/05-roadmap.md](docs/05-roadmap.md)。
+GitHub Actions で自動実行される。加えて 15 分おきに再生成リクエストを拾い、
+Garmin を引き直してメニューを作り直す。残作業と運用状態は
+[docs/05-roadmap.md](docs/05-roadmap.md)。
 
 | | |
 |---|---|
 | 本番 PWA | https://personal-coach-6z2.pages.dev |
 | DB | 既存 Supabase プロジェクトの `coach` スキーマに相乗り |
-| ローカル実行 | `cd batch && uv run pc-ingest` / `uv run pc-notify` |
+| ローカル実行 | `cd batch && uv run pc-ingest` / `uv run pc-notify` / `uv run pc-regenerate` |
 | 設定 | リポジトリ直下の `.env`（`config.py` が読む。gitignore 済み） |
 
 ## 一度踏んだ罠

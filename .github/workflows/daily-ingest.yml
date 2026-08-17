@@ -16,8 +16,10 @@ on:
 permissions:
   contents: read
 
+# regenerate と同じグループ。Garmin のトークンは 1 行を共有しており、
+# 同時に走らせるとリフレッシュ後の書き戻しが競合する
 concurrency:
-  group: daily-ingest
+  group: garmin
   cancel-in-progress: false
 
 jobs:

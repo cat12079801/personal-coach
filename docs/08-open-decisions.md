@@ -6,22 +6,42 @@
 
 ## OD-1: メニュー再生成のリクエストを誰が拾うか
 
-**状態:** ⬜ 未決定（マイルストーン 6 で決める）
+**状態:** ✅ 決定（案 A。2026-08-17 に実装）
 
-PWA は `regenerate_requests` に 1 行入れるところまで実装済み
+PWA は `regenerate_requests` に 1 行入れる
 （[0003_regenerate_requests.sql](../supabase/migrations/0003_regenerate_requests.sql)）。
-**このリクエストを処理する側はまだ無い。**
+それを拾うのが [regenerate.yml](../.github/workflows/regenerate.yml) →
+[`regenerate.py`](../batch/src/personal_coach/regenerate.py) である。
 
 独自バックエンドを持たない方針なので、PWA から直接 GitHub Actions を起動することはできない
 （`workflow_dispatch` を叩くにはトークンが要るが、フロントに置けば公開されてしまう）。
 
-### 案 A: ポーリングするワークフローを足す（推奨）
+### 再生成では Garmin を引き直す
+
+DB に入っている値からの組み直しではなく、`build_menu()` を通して**プランと
+training_readiness をその時点で取得し直す**。
+
+Garmin のアダプティブコーチは睡眠スコアや readiness を見て当日のプランを差し替えることがある。
+03:00 のバッチは就寝中の値で組んでいるため、日中に見ているメニューが最新とは限らない。
+「カレンダーの反映漏れの救済」に加えて、ここが再生成のもう一つの目的になる。
+
+Garmin を叩くのは未処理のリクエストがある実行だけ。無ければ Supabase を 1 回引いて終わる。
+
+作り直すのは**当日ぶんだけ**。`taskList` は当日以降しか返さず、過ぎた日を引き直す意味が無い。
+当日以外の行は `skipped: 当日以外` を書いて閉じる（溜まった古い行で Garmin を叩かないため）。
+
+`daily-ingest` と同じ concurrency group（`garmin`）に入れている。
+`garmin_tokens` は 1 行を共有しており、同時に走らせるとリフレッシュ後の書き戻しが競合する。
+
+### 案 A: ポーリングするワークフローを足す（採用）
 
 15 分おきに起動し、未処理のリクエストがあれば再生成する。
 
 - 実装が単純で、新しい資格情報が要らない
 - public リポジトリなので実行時間は無料
 - 反映は最大 15 分待ち。無駄な起動が 1 日 96 回
+
+高頻度の cron は GitHub 側の混雑で間引かれるため、実際の待ちは 15〜30 分と見ておく。
 
 ### 案 B: Supabase Database Webhook から `repository_dispatch` を叩く
 
@@ -35,7 +55,7 @@ PWA は `regenerate_requests` に 1 行入れるところまで実装済み
 
 方針（「独自バックエンドは作らない」）に反するので採らない。
 
-> 案 A で始め、待ち時間が実際に不便なら案 B に移す。
+> 案 A で始めた。待ち時間が実際に不便なら案 B に移す。
 
 ---
 

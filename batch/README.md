@@ -15,8 +15,9 @@ uv sync
 ## 実行
 
 ```bash
-uv run pc-ingest   # 取り込み + メニュー生成（03:00 JST 相当）
-uv run pc-notify   # 通知送信（08:00 JST 相当）
+uv run pc-ingest      # 取り込み + メニュー生成（03:00 JST 相当）
+uv run pc-notify      # 通知送信（08:00 JST 相当）
+uv run pc-regenerate  # 再生成リクエストの処理（15 分おき相当）
 ```
 
 ## スクリプト
@@ -37,6 +38,7 @@ personal_coach/
 ├── db.py             Supabase（secret key = service_role ロール、coach スキーマ）
 ├── cli.py            エントリポイント
 ├── ingest.py         取り込み（マイルストーン 3・未着手）
+├── regenerate.py     再生成リクエストの処理（Garmin を引き直す）
 ├── calendar_ics.py   Google カレンダー（非公開 iCal URL）
 ├── garmin/           Garmin 依存はこの中に閉じ込める
 │   ├── auth.py       ログイン + トークンの Supabase 往復

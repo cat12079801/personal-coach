@@ -243,9 +243,14 @@
 	}
 
 	/**
-	 * .ics は Google 側でキャッシュされ反映が数時間遅れることがある。
-	 * 前夜遅くに入れた予定を 03:00 のバッチが拾えないため、手動リカバリの導線を必ず置く。
-	 * 詳細は docs/adr/0003-ical-instead-of-oauth.md。
+	 * 再生成の依頼を積む。拾うのは 15 分おきの regenerate ワークフロー（OD-1 案 A）で、
+	 * そこで Garmin を引き直す。この画面は行を 1 つ入れるだけ。
+	 *
+	 * 使いどころは 2 つ。
+	 *   - .ics は Google 側でキャッシュされ反映が数時間遅れる。前夜遅くに入れた予定を
+	 *     03:00 のバッチが拾えない（docs/adr/0003-ical-instead-of-oauth.md）
+	 *   - Garmin のコーチが睡眠スコアを見て当日のプランを差し替えることがある。
+	 *     03:00 は就寝中の値で組んでいる
 	 */
 	async function requestRegenerate() {
 		requesting = true;
@@ -458,7 +463,8 @@
 			</details>
 
 			<p class="muted">
-				カレンダーの反映が遅れて予定を拾えていない場合は再生成する。
+				カレンダーの予定を拾えていない場合や、睡眠スコアでコーチのプランが
+				変わっている可能性がある場合は再生成する。Garmin から取り直す。
 			</p>
 			<button
 				class="button--quiet"
@@ -468,6 +474,9 @@
 			>
 				{requested ? '再生成をリクエスト済み' : 'メニューを再生成'}
 			</button>
+			{#if requested}
+				<p class="muted">反映まで 15〜30 分かかる。時間を置いて開き直す。</p>
+			{/if}
 
 			{#if error}<p class="error">{error}</p>{/if}
 		</footer>

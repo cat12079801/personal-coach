@@ -1,7 +1,8 @@
 """バッチのエントリポイント。GitHub Actions から呼ぶ。
 
-pc-ingest   03:00 JST — 取り込み + メニュー生成
-pc-notify   08:00 JST — 生成済みメニューの通知
+pc-ingest      03:00 JST — 取り込み + メニュー生成
+pc-notify      08:00 JST — 生成済みメニューの通知
+pc-regenerate  15 分おき — PWA から積まれた再生成リクエストを拾う
 """
 
 from __future__ import annotations
@@ -68,6 +69,14 @@ def notify() -> int:
     summary = menu["menu"].get("summary", "本日のメニュー")
     send_menu_notification(title="今日のトレーニング", summary=summary, target_date=target)
     client().table("daily_menus").update({"notified_at": "now()"}).eq("date", target).execute()
+    return 0
+
+
+def regenerate() -> int:
+    _setup_logging()
+    from .regenerate import process_requests
+
+    process_requests()
     return 0
 
 

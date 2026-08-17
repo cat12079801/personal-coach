@@ -1,0 +1,59 @@
+name: regenerate
+
+# 15 分おき — PWA の「メニューを再生成」が積んだリクエストを拾う（OD-1 案 A）。
+#
+# 未処理が無ければ Supabase を 1 回引いて終わる。あるときだけ Garmin を引き直すので、
+# 日中に押した再生成にはその時点の睡眠スコア／readiness と、それに応じてコーチが
+# 差し替えたプランが反映される。
+#
+# public リポジトリなので実行時間は無料だが、高頻度の cron は GitHub 側の混雑で
+# 間引かれることがある。反映は「最大 15 分」ではなく「おおむね 15〜30 分」と考える。
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# daily-ingest と同じグループ。Garmin のトークンは 1 行を共有しており、
+# 同時に走らせるとリフレッシュ後の書き戻しが競合する
+concurrency:
+  group: garmin
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: batch
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: 再生成リクエストの処理
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          GOOGLE_CALENDAR_ICS_URL: ${{ secrets.GOOGLE_CALENDAR_ICS_URL }}
+        run: uv run pc-regenerate
+
+      - name: 失敗を Discord に通知
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then exit 0; fi
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          jq -n --arg u "$url" '{content: ("regenerate が失敗した: " + $u)}' \
+            | curl -sS -X POST -H 'Content-Type: application/json' -d @- \
+                "$DISCORD_WEBHOOK_URL" > /dev/null
